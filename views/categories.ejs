@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Categories - FreeTransPNG</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    
+    <header class="bg-gray-900 text-white p-4 flex justify-between items-center shadow">
+        <h1 class="text-xl font-bold">Category Management</h1>
+        <a href="/admin" class="bg-blue-600 px-4 py-2 rounded text-sm hover:bg-blue-700 font-medium">← Back to Dashboard</a>
+    </header>
+
+    <main class="container mx-auto p-6 max-w-2xl space-y-6">
+        <!-- Add Category Form -->
+        <div class="bg-white p-6 rounded-xl shadow">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">Add New Category</h2>
+            <form action="/admin/category/add" method="POST" class="flex gap-2">
+                <input type="text" name="name" required placeholder="Enter Category Name (e.g. Furniture, Nature...)" class="w-full p-2.5 border rounded-lg text-sm outline-none">
+                <button type="submit" class="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-green-700">Add</button>
+            </form>
+        </div>
+
+        <!-- Search and List Categories with Searchable Dropdown -->
+        <div class="bg-white p-6 rounded-xl shadow space-y-4">
+            <div class="flex justify-between items-center flex-wrap gap-2">
+                <h2 class="text-lg font-bold text-gray-800">All Categories (<%= categories.length %>)</h2>
+                
+                <!-- Search Bar with Live Dropdown -->
+                <form action="/admin/categories" method="GET" class="flex gap-2 relative">
+                    <div class="relative">
+                        <input type="text" id="catSearchBox" name="search" value="<%= searchCat || '' %>" placeholder="Search categories..." autocomplete="off" class="p-2 border rounded-lg text-sm outline-none bg-white" oninput="filterCatDropdown()" onclick="showCatDropdown()">
+                        
+                        <!-- Floating Dropdown List -->
+                        <div id="catDropdownList" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                            <% categories.forEach(cat => { %>
+                                <div onclick="selectCategoryItem('<%= cat.name %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 cat-dropdown-item"><%= cat.name %></div>
+                            <% }) %>
+                        </div>
+                    </div>
+                    <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Search</button>
+                </form>
+            </div>
+
+            <div class="max-h-96 overflow-y-auto space-y-2 divide-y">
+                <% if(categories.length > 0) { %>
+                    <% categories.forEach(cat => { %>
+                        <div class="flex justify-between items-center pt-2 px-2 text-sm">
+                            <span class="font-medium text-gray-700"><%= cat.name %></span>
+                            <form action="/admin/category/delete/<%= cat._id %>" method="POST" onsubmit="return confirm('Delete this category?');">
+                                <button type="submit" class="text-red-500 font-bold hover:underline text-xs bg-red-50 px-2.5 py-1 rounded">Delete</button>
+                            </form>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <p class="text-center text-gray-500 py-4">No categories found.</p>
+                <% } %>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showCatDropdown() {
+            document.getElementById('catDropdownList').classList.remove('hidden');
+        }
+
+        function filterCatDropdown() {
+            let input = document.getElementById('catSearchBox').value.toLowerCase();
+            let items = document.querySelectorAll('.cat-dropdown-item');
+            let dropdown = document.getElementById('catDropdownList');
+            dropdown.classList.remove('hidden');
+            
+            items.forEach(item => {
+                let text = item.textContent.toLowerCase();
+                if (text.includes(input)) {
+                    item.style.display = "block";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+
+        function selectCategoryItem(name) {
+            document.getElementById('catSearchBox').value = name;
+            document.getElementById('catDropdownList').classList.add('hidden');
+        }
+
+        // Hide dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!document.getElementById('catSearchBox').contains(e.target) && !document.getElementById('catDropdownList').contains(e.target)) {
+                document.getElementById('catDropdownList').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

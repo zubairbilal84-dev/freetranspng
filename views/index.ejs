@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free High-Quality PNG Download Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    
+    <header class="bg-blue-600 text-white p-6 text-center shadow-md">
+        <h1 class="text-3xl font-bold">FreeTransPNG</h1>
+        <p class="text-sm mt-1">Download transparent HD PNG images instantly with zero waiting time</p>
+        
+        <!-- Search Bar -->
+        <form action="/" method="GET" class="mt-4 flex justify-center">
+            <input type="text" name="search" value="<%= search || '' %>" placeholder="Search PNGs (e.g. Diya, Flowers, Logos)..." class="p-3 w-1/2 rounded-l-lg text-black bg-white outline-none text-sm">
+            <button type="submit" class="bg-gray-900 px-6 rounded-r-lg font-semibold hover:bg-black text-sm">Search</button>
+        </form>
+
+        <!-- Category Filter Dropdown with Search for Home -->
+        <div class="mt-4 flex justify-center items-center gap-2 flex-wrap">
+            <a href="/" class="bg-blue-700 hover:bg-blue-800 text-xs px-3 py-2 rounded-lg font-medium transition text-white">All Categories</a>
+            <select onchange="location.href=this.value" class="bg-white text-black text-xs px-3 py-2 rounded-lg outline-none font-medium cursor-pointer">
+                <option value="/">-- Filter by Category --</option>
+                <% categories.forEach(cat => { %>
+                    <option value="/?category=<%= cat.name %>" <%= selectedCategory === cat.name ? 'selected' : '' %>><%= cat.name %></option>
+                <% }) %>
+            </select>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <% if(pngs.length > 0) { %>
+            <% pngs.forEach(png => { %>
+                <div class="bg-white p-4 rounded-xl shadow hover:shadow-lg transition flex flex-col items-center">
+                    <div class="h-40 w-full flex items-center justify-center bg-gray-50 rounded-lg mb-3 border border-dashed border-gray-300 p-2">
+                        <img src="<%= png.imageUrl %>" alt="<%= png.title %>" class="max-h-full max-w-full object-contain">
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-center text-sm mb-1 truncate w-full"><%= png.title %></h3>
+                    <span class="text-xs text-gray-500 mb-2 bg-gray-100 px-2 py-0.5 rounded"><%= png.category %></span>
+                    
+                    <!-- Tags Display -->
+                    <div class="flex flex-wrap gap-1 justify-center mb-3">
+                        <% png.tags.split(',').forEach(tag => { %>
+                            <span class="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium"><%= tag.trim() %></span>
+                        <% }) %>
+                    </div>
+
+                    <a href="/download/<%= png._id %>" class="w-full text-center bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition mt-auto text-sm">Download PNG</a>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <p class="col-span-full text-center text-gray-500 text-lg py-10">No PNGs found!</p>
+        <% } %>
+    </main>
+
+    <footer class="text-center py-6 text-gray-500 text-sm">
+        &copy; 2026 FreeTransPNG. All rights reserved. | <a href="/admin" class="text-blue-600 hover:underline">Admin Panel</a>
+    </footer>
+</body>
+</html>
