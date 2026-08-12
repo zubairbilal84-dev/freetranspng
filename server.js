@@ -43,7 +43,7 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
-// Middleware to track visits
+// Middleware to track website visits (excluding static assets and admin pages)
 app.use(async (req, res, next) => {
     if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api')) {
         await Visitor.create({});
@@ -68,43 +68,43 @@ const requireAdmin = (req, res, next) => {
 
 // --- ROUTES ---
 
-// E-commerce Style Product Detail Page Route (No download count increment here)
-// E-commerce Style Product Detail Page Route (No download count increment here)
-app.get('/png/:id', async (req, res) => {
+app.get('/', async (req, res) => {
     try {
-        const png = await Png.findById(req.params.id);
-        if (!png) return res.status(404).send("PNG not found");
-
-        const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
-        res.render('detail', { png, recommendations });
-    } catch (err) { res.status(500).send("Server Error"); }
-});
-
-// Dedicated Download Route (Increments count ONLY when download button is clicked)
-app.get('/download/:id', async (req, res) => {
-    try {
-        const png = await Png.findById(req.params.id);
-        if (!png) return res.status(404).send("PNG not found");
+        const search = req.query.search || '';
+        const selectedCategory = req.query.category || '';
         
-        png.downloads += 1;
-        await png.save();
-
-        // Redirect user directly to the image file for download
-        res.redirect(png.imageUrl);
-    } catch (err) { res.status(500).send("Server Error"); }
-});
-
-// Dedicated Download Route (Increments count ONLY when download button is clicked)
-app.get('/download/:id', async (req, res) => {
-    try {
-        const png = await Png.findById(req.params.id);
-        if (!png) return res.status(404).send("PNG not found");
+        let query = {};
+        if (selectedCategory) {
+            query.category = selectedCategory;
+        }
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { tags: { $regex: search, $options: 'i' } },
+                { category: { $regex: search, $options: 'i' } }
+            ];
+        }
         
-        png.downloads += 1;
-        await png.save();
+        const pngs = await Png.find(query).sort({ _id: -1 });
+        const categories = await Category.find().sort({ name: 1 });
+        
+        // Clean tags and titles extraction for placeholders
+        const allPngs = await Png.find().limit(15);
+        let popularTags = [];
+        allPngs.forEach(item => {
+            if(item.title) popularTags.push(item.title.trim());
+            if(item.tags) {
+                let tArr = item.tags.split(',').map(t => t.trim().replace(/#/g, '').replace(/tag[:\s]*/gi, ''));
+                popularTags.push(...tArr);
+            }
+        });
+        
+        popularTags = [...new Set(popularTags.filter(Boolean))];
+        if(popularTags.length === 0) {
+            popularTags = ['Diya', 'Logo', 'Vector', 'Ribbon', 'Banner', 'Icon'];
+        }
 
-        // Redirect user directly to the image file for download
-        res.redirect(png.imageUrl);
+        res.render('index', { pngs, search, categories, selectedCategory, popularTags });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
@@ -123,8 +123,19 @@ app.get('/api/search-suggestions', async (req, res) => {
     } catch (err) { res.json([]); }
 });
 
-// E-commerce Style Product Detail Page & Recommendations Route
+// E-commerce Style Product Detail Page Route (No download count increment here)
 app.get('/png/:id', async (req, res) => {
+    try {
+        const png = await Png.findById(req.params.id);
+        if (!png) return res.status(404).send("PNG not found");
+
+        const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
+        res.render('detail', { png, recommendations });
+    } catch (err) { res.status(500).send("Server Error"); }
+});
+
+// Dedicated Download Route (Increments count ONLY when download button is clicked)
+app.get('/download/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
         if (!png) return res.status(404).send("PNG not found");
@@ -132,13 +143,8 @@ app.get('/png/:id', async (req, res) => {
         png.downloads += 1;
         await png.save();
 
-        const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
-        res.render('detail', { png, recommendations });
+        res.redirect(png.imageUrl);
     } catch (err) { res.status(500).send("Server Error"); }
-});
-
-app.get('/download/:id', async (req, res) => {
-    res.redirect(`/png/${req.params.id}`);
 });
 
 // Static Pages for AdSense & Navigation
