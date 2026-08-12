@@ -88,19 +88,22 @@ app.get('/', async (req, res) => {
         const pngs = await Png.find(query).sort({ _id: -1 });
         const categories = await Category.find().sort({ name: 1 });
         
-        // Extract tags and titles for dynamic animated placeholders
-        const allPngs = await Png.find().limit(10);
+        // Clean tags and titles extraction (No # symbol, no prefixes)
+        const allPngs = await Png.find().limit(15);
         let popularTags = [];
         allPngs.forEach(item => {
-            if(item.title) popularTags.push(`Search "${item.title}"`);
+            if(item.title) popularTags.push(item.title.trim());
             if(item.tags) {
-                let tArr = item.tags.split(',').map(t => `Tag: #${t.trim()}`);
+                let tArr = item.tags.split(',').map(t => t.trim().replace(/#/g, '').replace(/tag[:\s]*/gi, ''));
                 popularTags.push(...tArr);
             }
         });
-        // Fallback placeholders if few items exist
+        
+        // Remove duplicate or empty strings
+        popularTags = [...new Set(popularTags.filter(Boolean))];
+
         if(popularTags.length === 0) {
-            popularTags = ['Search HD transparent PNGs...', 'Explore badges, logos & icons...', 'Type any tag or category...'];
+            popularTags = ['Diya', 'Logo', 'Vector', 'Ribbon', 'Banner', 'Icon'];
         }
 
         res.render('index', { pngs, search, categories, selectedCategory, popularTags });

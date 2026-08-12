@@ -40,10 +40,11 @@
                 </div>
             </a>
 
-            <!-- Search with Dynamic Tag/Title Placeholder using Data Attribute -->
+            <!-- Search with Cute Big Icon & Clean Text-Only Animated Placeholder -->
             <div class="relative w-full md:flex-1 max-w-md">
-                <form action="/" method="GET" autocomplete="off">
-                    <input type="text" id="searchInput" name="search" value="<%= search %>" data-popular='<%- JSON.stringify(popularTags || ["Search HD PNGs...", "Try searching Diya, Logo..."]) %>' placeholder="Search HD transparent PNGs..." class="w-full px-4 py-2.5 rounded-full text-gray-800 focus:outline-none shadow-inner text-sm bg-white/95">
+                <form action="/" method="GET" autocomplete="off" class="relative flex items-center">
+                    <span class="absolute left-4 text-lg select-none">✨🔍</span>
+                    <input type="text" id="searchInput" name="search" value="<%= search %>" data-popular='<%- JSON.stringify(popularTags || ["Diya", "Logo", "Vector", "Ribbon", "Banner"]) %>' placeholder="Explore transparent PNGs..." class="w-full pl-11 pr-4 py-2.5 rounded-full text-gray-800 focus:outline-none shadow-inner text-sm bg-white/95 font-medium">
                 </form>
                 <div id="suggestionsBox" class="absolute left-0 right-0 mt-1 bg-white rounded-xl shadow-xl z-50 hidden border border-gray-100 max-h-60 overflow-y-auto"></div>
             </div>
@@ -130,16 +131,15 @@
 
     </main>
 
-    <!-- Dynamic Tag-Powered Placeholder & Live Suggestions Script -->
+    <!-- Clean Animated Placeholder & Live Suggestions Script -->
     <script>
         const searchInput = document.getElementById('searchInput');
         
-        // Safely parse popular texts from data attribute without breaking VS Code linter
         let popularTexts = [];
         try {
             popularTexts = JSON.parse(searchInput.getAttribute('data-popular'));
         } catch(e) {
-            popularTexts = ['Search HD PNGs...', 'Try searching Diya, Logo...'];
+            popularTexts = ['Diya', 'Logo', 'Vector'];
         }
         
         let textIndex = 0;
@@ -151,10 +151,10 @@
             let currentText = popularTexts[textIndex];
             
             if (isDeleting) {
-                searchInput.setAttribute('placeholder', '🔍 ' + currentText.substring(0, charIndex - 1));
+                searchInput.setAttribute('placeholder', currentText.substring(0, charIndex - 1));
                 charIndex--;
             } else {
-                searchInput.setAttribute('placeholder', '🔍 ' + currentText.substring(0, charIndex + 1));
+                searchInput.setAttribute('placeholder', currentText.substring(0, charIndex + 1));
                 charIndex++;
             }
 
