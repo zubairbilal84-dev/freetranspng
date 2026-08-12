@@ -37,6 +37,20 @@ const pngSchema = new mongoose.Schema({
 });
 const Png = mongoose.model('Png', pngSchema);
 
+// Visitor Analytics Schema
+const visitorSchema = new mongoose.Schema({
+    timestamp: { type: Date, default: Date.now }
+});
+const Visitor = mongoose.model('Visitor', visitorSchema);
+
+// Middleware to track website visits (excluding static assets and admin pages)
+app.use(async (req, res, next) => {
+    if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api')) {
+        await Visitor.create({});
+    }
+    next();
+});
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => { cb(null, path.join(__dirname, 'public/uploads')); },
     filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '-')); }
@@ -62,20 +76,34 @@ app.get('/', async (req, res) => {
         let query = {};
         if (selectedCategory) {
             query.category = selectedCategory;
-        } else if (search) {
-            query = { 
-                $or: [
-                    { title: { $regex: search, $options: 'i' } },
-                    { tags: { $regex: search, $options: 'i' } },
-                    { category: { $regex: search, $options: 'i' } }
-                ] 
-            };
+        }
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { tags: { $regex: search, $options: 'i' } },
+                { category: { $regex: search, $options: 'i' } }
+            ];
         }
         
         const pngs = await Png.find(query).sort({ _id: -1 });
         const categories = await Category.find().sort({ name: 1 });
         res.render('index', { pngs, search, categories, selectedCategory });
     } catch (err) { res.status(500).send("Server Error"); }
+});
+
+// Live Search Autocomplete API Route
+app.get('/api/search-suggestions', async (req, res) => {
+    try {
+        const q = req.query.q || '';
+        const results = await Png.find({
+            $or: [
+                { title: { $regex: q, $options: 'i' } },
+                { tags: { $regex: q, $options: 'i' } },
+                { category: { $regex: q, $options: 'i' } }
+            ]
+        }).limit(5);
+        res.json(results);
+    } catch (err) { res.json([]); }
 });
 
 // E-commerce Style Product Detail Page & Recommendations Route
@@ -124,6 +152,17 @@ app.get('/admin/logout', (req, res) => {
 // --- PROTECTED ADMIN ROUTES ---
 app.get('/admin', requireAdmin, async (req, res) => {
     try {
+        // Visitor Analytics calculations (Daily, Weekly, Monthly)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date();
+        startOfWeek.setDate(now.getDate() - 7);
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const dailyVisits = await Visitor.countDocuments({ timestamp: { $gte: startOfDay } });
+        const weeklyVisits = await Visitor.countDocuments({ timestamp: { $gte: startOfWeek } });
+        const monthlyVisits = await Visitor.countDocuments({ timestamp: { $gte: startOfMonth } });
+
         const searchAdmin = req.query.search || '';
         const selectedCategory = req.query.category || '';
         
@@ -154,7 +193,7 @@ app.get('/admin', requireAdmin, async (req, res) => {
         const totalDownloads = await Png.aggregate([{ $group: { _id: null, sum: { $sum: "$downloads" } } }]);
         const sumDownloads = totalDownloads.length > 0 ? totalDownloads[0].sum : 0;
 
-        res.render('admin', { pngs, categories, totalPngs, sumDownloads, searchAdmin, selectedCategory });
+        res.render('admin', { pngs, categories, totalPngs, sumDownloads, dailyVisits, weeklyVisits, monthlyVisits, searchAdmin, selectedCategory });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 

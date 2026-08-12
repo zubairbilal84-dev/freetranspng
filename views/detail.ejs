@@ -3,64 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= png.title %> - Free HD Transparent PNG</title>
+    <title><%= png.title %> - FreeTransPNG</title>
+    <link rel="icon" href="/logo.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 font-sans">
 
     <!-- Header -->
     <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <a href="/" class="flex items-center space-x-2">
                 <img src="/logo.png" alt="Logo" class="h-10 w-10 object-contain">
-                <span class="text-xl font-bold">PixiePNG</span>
+                <span class="text-xl font-bold">Free<span class="text-yellow-300">TransPNG</span></span>
             </a>
             <a href="/" class="text-sm bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition">← Back to Home</a>
         </div>
     </header>
 
     <!-- Product Detail Section -->
-    <main class="max-w-6xl mx-auto px-4 py-10">
-        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8 p-8 items-center">
+    <main class="max-w-5xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 items-center">
             
-            <!-- Image Preview with Pattern -->
-            <div class="bg-gray-100 rounded-2xl p-8 flex items-center justify-center relative min-h-[350px]">
+            <div class="bg-gray-100 rounded-xl p-6 flex items-center justify-center relative min-h-[300px]">
                 <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:12px_12px]"></div>
-                <img src="<%= png.imageUrl %>" alt="<%= png.title %>" class="max-h-80 max-w-full object-contain relative z-10">
+                <img src="<%= png.imageUrl %>" alt="<%= png.title %>" class="max-h-72 max-w-full object-contain relative z-10">
             </div>
 
-            <!-- Details & Download Action -->
             <div>
                 <span class="bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"><%= png.category %></span>
-                <h1 class="text-3xl font-extrabold text-gray-800 mt-3"><%= png.title %></h1>
-                <p class="text-gray-500 text-sm mt-2">Tags: <%= png.tags %></p>
+                <h1 class="text-2xl font-extrabold text-gray-800 mt-2"><%= png.title %></h1>
+                <p class="text-gray-500 text-xs mt-1">Tags: <%= png.tags %></p>
                 
-                <div class="mt-6 flex items-center space-x-4 text-sm text-gray-500">
-                    <span>📥 Total Downloads: <b><%= png.downloads %></b></span>
+                <div class="mt-4 flex items-center space-x-4 text-xs text-gray-500">
+                    <span>📥 Downloads: <b><%= png.downloads %></b></span>
                     <span>✨ Format: <b>HD Transparent PNG</b></span>
                 </div>
 
-                <div class="mt-8 flex space-x-4">
-                    <a href="<%= png.imageUrl %>" download target="_blank" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-center shadow-lg transition flex items-center justify-center space-x-2">
-                        <span>📥 Download HD PNG</span>
+                <div class="mt-6">
+                    <a href="<%= png.imageUrl %>" download target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-center shadow-md transition block text-sm">
+                        📥 Download HD PNG
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Recommended / Related PNGs -->
+        <!-- Recommendations -->
         <% if (recommendations && recommendations.length > 0) { %>
-            <div class="mt-16">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">Similar Recommendations</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <div class="mt-12">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Similar Recommendations</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <% recommendations.forEach(item => { %>
-                        <div class="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col justify-between shadow-sm group">
-                            <a href="/png/<%= item._id %>" class="bg-gray-100 rounded-xl p-3 h-36 flex items-center justify-center relative">
+                        <div class="bg-white border border-gray-100 rounded-xl p-3 flex flex-col justify-between shadow-sm group">
+                            <a href="/png/<%= item._id %>" class="bg-gray-100 rounded-lg p-2 h-28 flex items-center justify-center relative">
                                 <img src="<%= item.imageUrl %>" alt="<%= item.title %>" class="max-h-full max-w-full object-contain group-hover:scale-105 transition">
                             </a>
-                            <h4 class="text-sm font-bold text-gray-800 truncate mt-3"><%= item.title %></h4>
-                            <a href="/png/<%= item._id %>" class="mt-3 block text-center bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 text-xs font-bold py-2 rounded-lg transition">
-                                View Item
+                            <h4 class="text-xs font-bold text-gray-800 truncate mt-2"><%= item.title %></h4>
+                            <a href="/png/<%= item._id %>" class="mt-2 block text-center bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 text-xs font-bold py-1.5 rounded-lg transition">
+                                View
                             </a>
                         </div>
                     <% }) %>
