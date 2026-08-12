@@ -35,31 +35,34 @@
                 <p class="text-gray-500 text-xs mt-1">Tags: <%= png.tags %></p>
                 
                 <div class="mt-4 flex items-center space-x-4 text-xs text-gray-500">
-                    <span>📥 Downloads: <b><%= png.downloads %></b></span>
+                    <span>📥 Total Downloads: <b><%= png.downloads %></b></span>
                     <span>✨ Format: <b>HD Transparent PNG</b></span>
                 </div>
 
                 <div class="mt-6">
-                    <a href="<%= png.imageUrl %>" download target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-center shadow-md transition block text-sm">
+                    <!-- Trigger official download route to increment counter correctly -->
+                    <a href="/download/<%= png._id %>" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-center shadow-md transition block text-sm">
                         📥 Download HD PNG
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Recommendations -->
+        <!-- Clean Image-Only Recommendations -->
         <% if (recommendations && recommendations.length > 0) { %>
             <div class="mt-12">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Similar Recommendations</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <% recommendations.forEach(item => { %>
-                        <div class="bg-white border border-gray-100 rounded-xl p-3 flex flex-col justify-between shadow-sm group">
-                            <a href="/png/<%= item._id %>" class="bg-gray-100 rounded-lg p-2 h-28 flex items-center justify-center relative">
-                                <img src="<%= item.imageUrl %>" alt="<%= item.title %>" class="max-h-full max-w-full object-contain group-hover:scale-105 transition">
-                            </a>
-                            <h4 class="text-xs font-bold text-gray-800 truncate mt-2"><%= item.title %></h4>
-                            <a href="/png/<%= item._id %>" class="mt-2 block text-center bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 text-xs font-bold py-1.5 rounded-lg transition">
-                                View
+                        <div class="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm group relative p-3">
+                            <a href="/png/<%= item._id %>" class="bg-gray-50 h-32 flex items-center justify-center relative overflow-hidden block rounded-lg">
+                                <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:10px_10px]"></div>
+                                <img src="<%= item.imageUrl %>" alt="<%= item.title %>" class="max-h-24 max-w-full object-contain relative z-10 group-hover:scale-110 transition duration-300">
+                                
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-2 text-white">
+                                    <span class="text-[11px] font-bold truncate"><%= item.title %></span>
+                                    <span class="text-[9px] text-gray-200">📥 <%= item.downloads %> downloads</span>
+                                </div>
                             </a>
                         </div>
                     <% }) %>

@@ -68,45 +68,28 @@ const requireAdmin = (req, res, next) => {
 
 // --- ROUTES ---
 
-app.get('/', async (req, res) => {
+// E-commerce Style Product Detail Page Route (No download count increment here)
+app.get('/png/:id', async (req, res) => {
     try {
-        const search = req.query.search || '';
-        const selectedCategory = req.query.category || '';
-        
-        let query = {};
-        if (selectedCategory) {
-            query.category = selectedCategory;
-        }
-        if (search) {
-            query.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { tags: { $regex: search, $options: 'i' } },
-                { category: { $regex: search, $options: 'i' } }
-            ];
-        }
-        
-        const pngs = await Png.find(query).sort({ _id: -1 });
-        const categories = await Category.find().sort({ name: 1 });
-        
-        // Clean tags and titles extraction (No # symbol, no prefixes)
-        const allPngs = await Png.find().limit(15);
-        let popularTags = [];
-        allPngs.forEach(item => {
-            if(item.title) popularTags.push(item.title.trim());
-            if(item.tags) {
-                let tArr = item.tags.split(',').map(t => t.trim().replace(/#/g, '').replace(/tag[:\s]*/gi, ''));
-                popularTags.push(...tArr);
-            }
-        });
-        
-        // Remove duplicate or empty strings
-        popularTags = [...new Set(popularTags.filter(Boolean))];
+        const png = await Png.findById(req.params.id);
+        if (!png) return res.status(404).send("PNG not found");
 
-        if(popularTags.length === 0) {
-            popularTags = ['Diya', 'Logo', 'Vector', 'Ribbon', 'Banner', 'Icon'];
-        }
+        const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
+        res.render('detail', { png, recommendations });
+    } catch (err) { res.status(500).send("Server Error"); }
+});
 
-        res.render('index', { pngs, search, categories, selectedCategory, popularTags });
+// Dedicated Download Route (Increments count ONLY when download button is clicked)
+app.get('/download/:id', async (req, res) => {
+    try {
+        const png = await Png.findById(req.params.id);
+        if (!png) return res.status(404).send("PNG not found");
+        
+        png.downloads += 1;
+        await png.save();
+
+        // Redirect user directly to the image file for download
+        res.redirect(png.imageUrl);
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
