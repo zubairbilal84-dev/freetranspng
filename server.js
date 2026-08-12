@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const path = require('path');
 const multer = require('multer');
 const session = require('express-session');
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
 require('dotenv').config();
 
 const app = express();
@@ -18,6 +20,14 @@ app.use(session({
     resave: false,
     saveUninitialized: true
 }));
+
+// Firebase Admin Initialization
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: 'freetranspng.firebasestorage.app'
+});
+
+const bucket = admin.storage().bucket();
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freetranspng')
 .then(() => console.log('MongoDB Connected Successfully!'))
@@ -51,10 +61,8 @@ app.use(async (req, res, next) => {
     next();
 });
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => { cb(null, path.join(__dirname, 'public/uploads')); },
-    filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '-')); }
-});
+// Multer Memory Storage for Firebase Uploads
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // --- ADMIN AUTHENTICATION MIDDLEWARE ---
@@ -135,7 +143,6 @@ app.get('/png/:id', async (req, res) => {
 });
 
 // Dedicated Download Route (Increments count ONLY when download button is clicked)
-// Dedicated Download Route with Force Download Header
 app.get('/download/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -144,16 +151,7 @@ app.get('/download/:id', async (req, res) => {
         png.downloads += 1;
         await png.save();
 
-        // Get absolute file path from public folder
-        const filePath = path.join(__dirname, 'public', png.imageUrl);
-        
-        // Force browser to download the file instead of opening it
-        res.download(filePath, png.title.replace(/\s+/g, '-') + '.png', (err) => {
-            if (err) {
-                // Fallback if local file path fails (e.g. cloud storage or absolute url)
-                res.redirect(png.imageUrl);
-            }
-        });
+        res.redirect(png.imageUrl);
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
@@ -255,12 +253,35 @@ app.post('/admin/category/delete/:id', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Error deleting category"); }
 });
 
+// Upload Route with Firebase Storage Integration
 app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
         if (!req.file) return res.status(400).send("No file uploaded!");
-        await Png.create({ title, category, tags, imageUrl: `/uploads/${req.file.filename}` });
-        res.redirect('/admin');
+
+        const fileName = `uploads/${Date.now()}-${req.file.originalname.replace(/\s+/g, '-')}`;
+        const fileRef = bucket.file(fileName);
+
+        const blobStream = fileRef.createWriteStream({
+            metadata: { contentType: req.file.mimetype }
+        });
+
+        blobStream.on('error', (err) => {
+            console.error(err);
+            return res.status(500).send("Error uploading file to Firebase");
+        });
+
+        blobStream.on('finish', async () => {
+            const [url] = await fileRef.getSignedUrl({
+                action: 'read',
+                expires: '03-01-2500'
+            });
+
+            await Png.create({ title, category, tags, imageUrl: url });
+            res.redirect('/admin');
+        });
+
+        blobStream.end(req.file.buffer);
     } catch (err) { res.status(500).send("Error uploading file"); }
 });
 
@@ -273,13 +294,32 @@ app.get('/admin/edit/:id', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
+// Update Route with Firebase Storage Integration
 app.post('/admin/update/:id', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
         let updateData = { title, category, tags };
         
         if (req.file) {
-            updateData.imageUrl = `/uploads/${req.file.filename}`;
+            const fileName = `uploads/${Date.now()}-${req.file.originalname.replace(/\s+/g, '-')}`;
+            const fileRef = bucket.file(fileName);
+
+            const blobStream = fileRef.createWriteStream({
+                metadata: { contentType: req.file.mimetype }
+            });
+
+            await new Promise((resolve, reject) => {
+                blobStream.on('error', (err) => reject(err));
+                blobStream.on('finish', async () => {
+                    const [url] = await fileRef.getSignedUrl({
+                        action: 'read',
+                        expires: '03-01-2500'
+                    });
+                    updateData.imageUrl = url;
+                    resolve();
+                });
+                blobStream.end(req.file.buffer);
+            });
         }
 
         await Png.findByIdAndUpdate(req.params.id, updateData);
