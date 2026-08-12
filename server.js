@@ -135,6 +135,7 @@ app.get('/png/:id', async (req, res) => {
 });
 
 // Dedicated Download Route (Increments count ONLY when download button is clicked)
+// Dedicated Download Route with Force Download Header
 app.get('/download/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -143,7 +144,16 @@ app.get('/download/:id', async (req, res) => {
         png.downloads += 1;
         await png.save();
 
-        res.redirect(png.imageUrl);
+        // Get absolute file path from public folder
+        const filePath = path.join(__dirname, 'public', png.imageUrl);
+        
+        // Force browser to download the file instead of opening it
+        res.download(filePath, png.title.replace(/\s+/g, '-') + '.png', (err) => {
+            if (err) {
+                // Fallback if local file path fails (e.g. cloud storage or absolute url)
+                res.redirect(png.imageUrl);
+            }
+        });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
