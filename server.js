@@ -61,14 +61,38 @@ app.get('/', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-app.get('/download/:id', async (req, res) => {
+// E-commerce Style Product Detail Page & Recommendations Route
+app.get('/png/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
         if (!png) return res.status(404).send("PNG not found");
+        
+        // Track download/view click count increase
         png.downloads += 1;
         await png.save();
-        res.render('download', { png });
+
+        // Same category ke 4 recommended items fetch karna
+        const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
+        res.render('detail', { png, recommendations });
     } catch (err) { res.status(500).send("Server Error"); }
+});
+
+// Purana download route support ke liye (optional redirect)
+app.get('/download/:id', async (req, res) => {
+    res.redirect(`/png/${req.params.id}`);
+});
+
+// Static Pages for AdSense & Navigation
+app.get('/about', (req, res) => {
+    res.render('about');
+});
+
+app.get('/contact', (req, res) => {
+    res.render('contact');
+});
+
+app.get('/privacy', (req, res) => {
+    res.render('privacy');
 });
 
 // Admin Dashboard - Updated to handle category filter & search
