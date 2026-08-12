@@ -69,6 +69,7 @@ const requireAdmin = (req, res, next) => {
 // --- ROUTES ---
 
 // E-commerce Style Product Detail Page Route (No download count increment here)
+// E-commerce Style Product Detail Page Route (No download count increment here)
 app.get('/png/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -76,6 +77,20 @@ app.get('/png/:id', async (req, res) => {
 
         const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
         res.render('detail', { png, recommendations });
+    } catch (err) { res.status(500).send("Server Error"); }
+});
+
+// Dedicated Download Route (Increments count ONLY when download button is clicked)
+app.get('/download/:id', async (req, res) => {
+    try {
+        const png = await Png.findById(req.params.id);
+        if (!png) return res.status(404).send("PNG not found");
+        
+        png.downloads += 1;
+        await png.save();
+
+        // Redirect user directly to the image file for download
+        res.redirect(png.imageUrl);
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
