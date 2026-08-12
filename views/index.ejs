@@ -23,13 +23,13 @@
             50% { transform: translateY(-5px); }
             100% { transform: translateY(0px); }
         }
-        .png-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .png-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+        .png-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .png-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.12); }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
 
-   <!-- Header -->
+    <!-- Header -->
     <header class="animated-header text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row items-center justify-between gap-3">
             <a href="/" class="flex items-center space-x-3 group">
@@ -40,10 +40,10 @@
                 </div>
             </a>
 
-            <!-- Search with Live Suggestions Dropdown -->
+            <!-- Search with Dynamic Tag/Title Placeholder using Data Attribute -->
             <div class="relative w-full md:flex-1 max-w-md">
                 <form action="/" method="GET" autocomplete="off">
-                    <input type="text" id="searchInput" name="search" value="<%= search %>" placeholder="Search by title, tags or category..." class="w-full px-4 py-2.5 rounded-full text-gray-800 focus:outline-none shadow-inner text-sm bg-white/95">
+                    <input type="text" id="searchInput" name="search" value="<%= search %>" data-popular='<%- JSON.stringify(popularTags || ["Search HD PNGs...", "Try searching Diya, Logo..."]) %>' placeholder="Search HD transparent PNGs..." class="w-full px-4 py-2.5 rounded-full text-gray-800 focus:outline-none shadow-inner text-sm bg-white/95">
                 </form>
                 <div id="suggestionsBox" class="absolute left-0 right-0 mt-1 bg-white rounded-xl shadow-xl z-50 hidden border border-gray-100 max-h-60 overflow-y-auto"></div>
             </div>
@@ -70,37 +70,113 @@
         </div>
     </header>
 
-    <!-- Compact Grid Content -->
-    <main class="max-w-7xl mx-auto px-4 py-6">
-        <h2 class="text-lg font-bold text-gray-800 mb-4 border-b pb-1.5">Explore HD Transparent PNGs</h2>
+    <!-- Main Content with Mid-Page Twists -->
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-10">
         
-        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-            <% pngs.forEach(png => { %>
-                <div class="png-card bg-white border border-gray-100 rounded-xl p-3 flex flex-col justify-between shadow-sm group">
-                    <a href="/png/<%= png._id %>" class="bg-gray-100 rounded-lg p-2 h-28 flex items-center justify-center relative overflow-hidden">
-                        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:10px_10px]"></div>
-                        <img src="<%= png.imageUrl %>" alt="<%= png.title %>" class="max-h-full max-w-full object-contain relative z-10 group-hover:scale-105 transition duration-200">
-                    </a>
-
-                    <div class="mt-2">
-                        <span class="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider"><%= png.category %></span>
-                        <h3 class="text-xs font-bold text-gray-800 truncate mt-0.5"><%= png.title %></h3>
-                    </div>
-
-                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px]">
-                        <span class="text-gray-400"><%= png.downloads %> DLs</span>
-                        <a href="/png/<%= png._id %>" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-1 rounded shadow transition">
-                            View
-                        </a>
-                    </div>
-                </div>
-            <% }) %>
+        <div class="flex justify-between items-center border-b pb-2">
+            <h2 class="text-xl font-bold text-gray-800">Explore HD Transparent PNGs</h2>
+            <span class="text-xs text-gray-500">Showing true size proportions</span>
         </div>
+
+        <% 
+           let chunkSize = 8;
+           let chunks = [];
+           for (let i = 0; i < pngs.length; i += chunkSize) {
+               chunks.push(pngs.slice(i, i + chunkSize));
+           }
+        %>
+
+        <% if(chunks.length > 0) { %>
+            <% chunks.forEach((chunk, index) => { %>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <% chunk.forEach(png => { %>
+                        <div class="png-card bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm group relative flex flex-col justify-center items-center p-3">
+                            <a href="/png/<%= png._id %>" class="w-full flex items-center justify-center relative overflow-hidden block">
+                                <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:10px_10px]"></div>
+                                <img src="<%= png.imageUrl %>" alt="<%= png.title %>" class="w-auto h-auto max-h-48 max-w-full object-contain relative z-10 group-hover:scale-105 transition duration-300">
+                                
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-3 text-white rounded-xl">
+                                    <span class="text-xs font-bold truncate"><%= png.title %></span>
+                                    <span class="text-[10px] text-gray-200">📥 <%= png.downloads %> downloads</span>
+                                </div>
+                            </a>
+                        </div>
+                    <% }) %>
+                </div>
+
+                <% if (index === 0 && categories.length > 0) { %>
+                    <div class="bg-gradient-to-r from-purple-900 via-indigo-800 to-blue-900 text-white rounded-3xl p-8 shadow-xl my-8 text-center relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                        <span class="bg-yellow-400 text-gray-900 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">⚡ Trending Spotlight</span>
+                        <h3 class="text-2xl font-extrabold mt-3">Looking for something specific?</h3>
+                        <p class="text-gray-300 text-xs mt-1 max-w-lg mx-auto">Explore our top trending categories handpicked for high-end professional design requirements.</p>
+                        
+                        <div class="flex flex-wrap justify-center gap-2 mt-6 relative z-10">
+                            <% categories.slice(0, 5).forEach(cat => { %>
+                                <a href="/?category=<%= encodeURIComponent(cat.name) %>" class="bg-white/10 hover:bg-white/25 border border-white/20 px-4 py-2 rounded-full text-xs font-semibold transition backdrop-blur-md">
+                                    ✨ <%= cat.name %>
+                                </a>
+                            <% }) %>
+                        </div>
+                    </div>
+                <% } %>
+            <% }) %>
+        <% } else { %>
+            <div class="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                <p class="text-gray-500 font-medium">No transparent PNGs found matching your search.</p>
+                <a href="/" class="mt-3 inline-block bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl">Reset Search</a>
+            </div>
+        <% } %>
+
     </main>
 
-    <!-- Live Suggestions Script -->
+    <!-- Dynamic Tag-Powered Placeholder & Live Suggestions Script -->
     <script>
         const searchInput = document.getElementById('searchInput');
+        
+        // Safely parse popular texts from data attribute without breaking VS Code linter
+        let popularTexts = [];
+        try {
+            popularTexts = JSON.parse(searchInput.getAttribute('data-popular'));
+        } catch(e) {
+            popularTexts = ['Search HD PNGs...', 'Try searching Diya, Logo...'];
+        }
+        
+        let textIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+
+        function typePlaceholder() {
+            if(popularTexts.length === 0) return;
+            let currentText = popularTexts[textIndex];
+            
+            if (isDeleting) {
+                searchInput.setAttribute('placeholder', '🔍 ' + currentText.substring(0, charIndex - 1));
+                charIndex--;
+            } else {
+                searchInput.setAttribute('placeholder', '🔍 ' + currentText.substring(0, charIndex + 1));
+                charIndex++;
+            }
+
+            let typeSpeed = isDeleting ? 40 : 80;
+
+            if (!isDeleting && charIndex === currentText.length) {
+                typeSpeed = 1500;
+                isDeleting = true;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                textIndex = (textIndex + 1) % popularTexts.length;
+                typeSpeed = 500;
+            }
+
+            setTimeout(typePlaceholder, typeSpeed);
+        }
+
+        if(popularTexts.length > 0) {
+            setTimeout(typePlaceholder, 1000);
+        }
+
+        // Live Suggestions Autocomplete
         const suggestionsBox = document.getElementById('suggestionsBox');
 
         searchInput.addEventListener('input', async function() {
@@ -114,7 +190,7 @@
                 const items = await res.json();
                 if (items.length > 0) {
                     suggestionsBox.innerHTML = items.map(item => `
-                        <a href="/png/${item._id}" class="flex items-center space-x-3 p-2 hover:bg-gray-50 border-b border-gray-50 text-xs text-gray-700">
+                        <a href="/png/${item._id}" class="flex items-center space-x-3 p-2.5 hover:bg-gray-50 border-b border-gray-50 text-xs text-gray-700">
                             <img src="${item.imageUrl}" class="w-8 h-8 object-contain bg-gray-100 rounded">
                             <div>
                                 <div class="font-bold">${item.title}</div>

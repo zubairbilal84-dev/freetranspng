@@ -43,7 +43,7 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
-// Middleware to track website visits (excluding static assets and admin pages)
+// Middleware to track visits
 app.use(async (req, res, next) => {
     if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api')) {
         await Visitor.create({});
@@ -87,7 +87,23 @@ app.get('/', async (req, res) => {
         
         const pngs = await Png.find(query).sort({ _id: -1 });
         const categories = await Category.find().sort({ name: 1 });
-        res.render('index', { pngs, search, categories, selectedCategory });
+        
+        // Extract tags and titles for dynamic animated placeholders
+        const allPngs = await Png.find().limit(10);
+        let popularTags = [];
+        allPngs.forEach(item => {
+            if(item.title) popularTags.push(`Search "${item.title}"`);
+            if(item.tags) {
+                let tArr = item.tags.split(',').map(t => `Tag: #${t.trim()}`);
+                popularTags.push(...tArr);
+            }
+        });
+        // Fallback placeholders if few items exist
+        if(popularTags.length === 0) {
+            popularTags = ['Search HD transparent PNGs...', 'Explore badges, logos & icons...', 'Type any tag or category...'];
+        }
+
+        res.render('index', { pngs, search, categories, selectedCategory, popularTags });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
@@ -152,7 +168,6 @@ app.get('/admin/logout', (req, res) => {
 // --- PROTECTED ADMIN ROUTES ---
 app.get('/admin', requireAdmin, async (req, res) => {
     try {
-        // Visitor Analytics calculations (Daily, Weekly, Monthly)
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfWeek = new Date();
