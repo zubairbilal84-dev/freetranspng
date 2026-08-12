@@ -21,9 +21,6 @@ app.use(session({
 }));
 
 // Firebase Admin Initialization using Environment Variables
-const admin = require('firebase-admin');
-
-// Firebase Admin Initialization
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
