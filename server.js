@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const multer = require('multer');
+const session = require('express-session');
 require('dotenv').config();
 
 const app = express();
@@ -10,6 +11,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
+
+// Session setup for secure admin login
+app.use(session({
+    secret: 'freetranspng_super_secret_key',
+    resave: false,
+    saveUninitialized: true
+}));
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freetranspng')
 .then(() => console.log('MongoDB Connected Successfully!'))
@@ -34,6 +42,15 @@ const storage = multer.diskStorage({
     filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '-')); }
 });
 const upload = multer({ storage: storage });
+
+// --- ADMIN AUTHENTICATION MIDDLEWARE ---
+const requireAdmin = (req, res, next) => {
+    if (req.session && req.session.isAdmin) {
+        next();
+    } else {
+        res.redirect('/admin/login');
+    }
+};
 
 // --- ROUTES ---
 
@@ -67,36 +84,45 @@ app.get('/png/:id', async (req, res) => {
         const png = await Png.findById(req.params.id);
         if (!png) return res.status(404).send("PNG not found");
         
-        // Track download/view click count increase
         png.downloads += 1;
         await png.save();
 
-        // Same category ke 4 recommended items fetch karna
         const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
         res.render('detail', { png, recommendations });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Purana download route support ke liye (optional redirect)
 app.get('/download/:id', async (req, res) => {
     res.redirect(`/png/${req.params.id}`);
 });
 
 // Static Pages for AdSense & Navigation
-app.get('/about', (req, res) => {
-    res.render('about');
+app.get('/about', (req, res) => res.render('about'));
+app.get('/contact', (req, res) => res.render('contact'));
+app.get('/privacy', (req, res) => res.render('privacy'));
+
+// --- ADMIN LOGIN & AUTH ROUTES ---
+app.get('/admin/login', (req, res) => {
+    res.render('admin-login', { error: null });
 });
 
-app.get('/contact', (req, res) => {
-    res.render('contact');
+app.post('/admin/login', (req, res) => {
+    const { email, password } = req.body;
+    if (email === 'rihanandshifaan@0990' && password === 'rihan&shifaan123') {
+        req.session.isAdmin = true;
+        res.redirect('/admin');
+    } else {
+        res.render('admin-login', { error: 'Invalid Email or Password' });
+    }
 });
 
-app.get('/privacy', (req, res) => {
-    res.render('privacy');
+app.get('/admin/logout', (req, res) => {
+    req.session.isAdmin = false;
+    res.redirect('/admin/login');
 });
 
-// Admin Dashboard - Updated to handle category filter & search
-app.get('/admin', async (req, res) => {
+// --- PROTECTED ADMIN ROUTES ---
+app.get('/admin', requireAdmin, async (req, res) => {
     try {
         const searchAdmin = req.query.search || '';
         const selectedCategory = req.query.category || '';
@@ -132,8 +158,7 @@ app.get('/admin', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Separate Category Management Page
-app.get('/admin/categories', async (req, res) => {
+app.get('/admin/categories', requireAdmin, async (req, res) => {
     try {
         const searchCat = req.query.search || '';
         const query = searchCat ? { name: { $regex: searchCat, $options: 'i' } } : {};
@@ -142,7 +167,7 @@ app.get('/admin/categories', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-app.post('/admin/category/add', async (req, res) => {
+app.post('/admin/category/add', requireAdmin, async (req, res) => {
     try {
         const { name } = req.body;
         if (name) {
@@ -152,14 +177,14 @@ app.post('/admin/category/add', async (req, res) => {
     } catch (err) { res.status(500).send("Error adding category"); }
 });
 
-app.post('/admin/category/delete/:id', async (req, res) => {
+app.post('/admin/category/delete/:id', requireAdmin, async (req, res) => {
     try {
         await Category.findByIdAndDelete(req.params.id);
         res.redirect('/admin/categories');
     } catch (err) { res.status(500).send("Error deleting category"); }
 });
 
-app.post('/admin/upload', upload.single('pngImage'), async (req, res) => {
+app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
         if (!req.file) return res.status(400).send("No file uploaded!");
@@ -168,7 +193,7 @@ app.post('/admin/upload', upload.single('pngImage'), async (req, res) => {
     } catch (err) { res.status(500).send("Error uploading file"); }
 });
 
-app.get('/admin/edit/:id', async (req, res) => {
+app.get('/admin/edit/:id', requireAdmin, async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
         const categories = await Category.find().sort({ name: 1 });
@@ -177,7 +202,7 @@ app.get('/admin/edit/:id', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-app.post('/admin/update/:id', upload.single('pngImage'), async (req, res) => {
+app.post('/admin/update/:id', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
         let updateData = { title, category, tags };
@@ -191,7 +216,7 @@ app.post('/admin/update/:id', upload.single('pngImage'), async (req, res) => {
     } catch (err) { res.status(500).send("Error updating PNG"); }
 });
 
-app.post('/admin/delete/:id', async (req, res) => {
+app.post('/admin/delete/:id', requireAdmin, async (req, res) => {
     try {
         await Png.findByIdAndDelete(req.params.id);
         res.redirect('/admin');
