@@ -36,6 +36,34 @@
             </div>
         </div>
 
+        <!-- 📊 Traffic Analytics Section (Separate Section) -->
+        <div class="bg-white p-6 rounded-xl shadow">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📈</span> Website Traffic Overview</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-indigo-600 font-bold uppercase tracking-wider">Today's Visits</p>
+                        <h3 class="text-2xl font-extrabold text-indigo-900 mt-1"><%= typeof dailyVisits !== 'undefined' ? dailyVisits : 0 %></h3>
+                    </div>
+                    <div class="bg-indigo-100 p-3 rounded-lg text-indigo-600 text-lg">📅</div>
+                </div>
+                <div class="bg-purple-50 border border-purple-100 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-purple-600 font-bold uppercase tracking-wider">Weekly Visits (Last 7 Days)</p>
+                        <h3 class="text-2xl font-extrabold text-purple-900 mt-1"><%= typeof weeklyVisits !== 'undefined' ? weeklyVisits : 0 %></h3>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-lg text-purple-600 text-lg">📊</div>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Monthly Visits (This Month)</p>
+                        <h3 class="text-2xl font-extrabold text-emerald-900 mt-1"><%= typeof monthlyVisits !== 'undefined' ? monthlyVisits : 0 %></h3>
+                    </div>
+                    <div class="bg-emerald-100 p-3 rounded-lg text-emerald-600 text-lg">🌐</div>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <!-- Left Column: Upload PNG Form with Live Searchable Dropdown -->
