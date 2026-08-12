@@ -4,7 +4,6 @@ const path = require('path');
 const multer = require('multer');
 const session = require('express-session');
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
 require('dotenv').config();
 
 const app = express();
@@ -21,7 +20,7 @@ app.use(session({
     saveUninitialized: true
 }));
 
-// Firebase Admin Initialization
+// Firebase Admin Initialization using Environment Variables
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
