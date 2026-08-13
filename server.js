@@ -4,7 +4,7 @@ const path = require('path');
 const multer = require('multer');
 const session = require('express-session');
 const cloudinary = require('cloudinary').v2;
-const { Streamifier } = require('streamifier'); // ya memory buffer ke liye direct upload
+
 require('dotenv').config();
 
 const app = express();
