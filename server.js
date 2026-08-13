@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const path = require('path');
 const multer = require('multer');
 const session = require('express-session');
-const admin = require('firebase-admin');
+const cloudinary = require('cloudinary').v2;
+const { Streamifier } = require('streamifier'); // ya memory buffer ke liye direct upload
 require('dotenv').config();
 
 const app = express();
@@ -20,15 +21,12 @@ app.use(session({
     saveUninitialized: true
 }));
 
-// Firebase Admin Initialization using Environment Variables
-const serviceAccount = require('./serviceAccountKey.json');
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'freetranspng.firebasestorage.app'
+// Cloudinary Configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-const bucket = admin.storage().bucket();
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freetranspng')
 .then(() => console.log('MongoDB Connected Successfully!'))
@@ -54,7 +52,6 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
-// Middleware to track website visits (excluding static assets and admin pages)
 app.use(async (req, res, next) => {
     if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api')) {
         await Visitor.create({});
@@ -62,7 +59,7 @@ app.use(async (req, res, next) => {
     next();
 });
 
-// Multer Memory Storage for Firebase Uploads
+// Multer Memory Storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -97,7 +94,6 @@ app.get('/', async (req, res) => {
         const pngs = await Png.find(query).sort({ _id: -1 });
         const categories = await Category.find().sort({ name: 1 });
         
-        // Clean tags and titles extraction for placeholders
         const allPngs = await Png.find().limit(15);
         let popularTags = [];
         allPngs.forEach(item => {
@@ -117,7 +113,6 @@ app.get('/', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Live Search Autocomplete API Route
 app.get('/api/search-suggestions', async (req, res) => {
     try {
         const q = req.query.q || '';
@@ -132,7 +127,6 @@ app.get('/api/search-suggestions', async (req, res) => {
     } catch (err) { res.json([]); }
 });
 
-// E-commerce Style Product Detail Page Route (No download count increment here)
 app.get('/png/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -143,7 +137,6 @@ app.get('/png/:id', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Dedicated Download Route (Increments count ONLY when download button is clicked)
 app.get('/download/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -156,12 +149,10 @@ app.get('/download/:id', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Static Pages for AdSense & Navigation
 app.get('/about', (req, res) => res.render('about'));
 app.get('/contact', (req, res) => res.render('contact'));
 app.get('/privacy', (req, res) => res.render('privacy'));
 
-// --- ADMIN LOGIN & AUTH ROUTES ---
 app.get('/admin/login', (req, res) => {
     res.render('admin-login', { error: null });
 });
@@ -181,7 +172,6 @@ app.get('/admin/logout', (req, res) => {
     res.redirect('/admin/login');
 });
 
-// --- PROTECTED ADMIN ROUTES ---
 app.get('/admin', requireAdmin, async (req, res) => {
     try {
         const now = new Date();
@@ -254,36 +244,29 @@ app.post('/admin/category/delete/:id', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Error deleting category"); }
 });
 
-// Upload Route with Firebase Storage Integration
+// Upload Route with Cloudinary Integration
 app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
         if (!req.file) return res.status(400).send("No file uploaded!");
 
-        const fileName = `uploads/${Date.now()}-${req.file.originalname.replace(/\s+/g, '-')}`;
-        const fileRef = bucket.file(fileName);
+        let uploadStream = cloudinary.uploader.upload_stream(
+            { folder: "freetranspng_uploads" },
+            async (error, result) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).send("Error uploading file to Cloudinary");
+                }
+                await Png.create({ title, category, tags, imageUrl: result.secure_url });
+                res.redirect('/admin');
+            }
+        );
 
-        const blobStream = fileRef.createWriteStream({
-            metadata: { contentType: req.file.mimetype }
-        });
-
-        blobStream.on('error', (err) => {
-            console.error(err);
-            return res.status(500).send("Error uploading file to Firebase");
-        });
-
-        blobStream.on('finish', async () => {
-            const [url] = await fileRef.getSignedUrl({
-                action: 'read',
-                expires: '03-01-2500'
-            });
-
-            await Png.create({ title, category, tags, imageUrl: url });
-            res.redirect('/admin');
-        });
-
-        blobStream.end(req.file.buffer);
-    } catch (err) { res.status(500).send("Error uploading file"); }
+        uploadStream.end(req.file.buffer);
+    } catch (err) { 
+        console.error(err);
+        res.status(500).send("Error uploading file"); 
+    }
 });
 
 app.get('/admin/edit/:id', requireAdmin, async (req, res) => {
@@ -295,37 +278,32 @@ app.get('/admin/edit/:id', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Update Route with Firebase Storage Integration
+// Update Route with Cloudinary Integration
 app.post('/admin/update/:id', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
         let updateData = { title, category, tags };
         
         if (req.file) {
-            const fileName = `uploads/${Date.now()}-${req.file.originalname.replace(/\s+/g, '-')}`;
-            const fileRef = bucket.file(fileName);
-
-            const blobStream = fileRef.createWriteStream({
-                metadata: { contentType: req.file.mimetype }
-            });
-
             await new Promise((resolve, reject) => {
-                blobStream.on('error', (err) => reject(err));
-                blobStream.on('finish', async () => {
-                    const [url] = await fileRef.getSignedUrl({
-                        action: 'read',
-                        expires: '03-01-2500'
-                    });
-                    updateData.imageUrl = url;
-                    resolve();
-                });
-                blobStream.end(req.file.buffer);
+                let uploadStream = cloudinary.uploader.upload_stream(
+                    { folder: "freetranspng_uploads" },
+                    (error, result) => {
+                        if (error) return reject(error);
+                        updateData.imageUrl = result.secure_url;
+                        resolve();
+                    }
+                );
+                uploadStream.end(req.file.buffer);
             });
         }
 
         await Png.findByIdAndUpdate(req.params.id, updateData);
         res.redirect('/admin');
-    } catch (err) { res.status(500).send("Error updating PNG"); }
+    } catch (err) { 
+        console.error(err);
+        res.status(500).send("Error updating PNG"); 
+    }
 });
 
 app.post('/admin/delete/:id', requireAdmin, async (req, res) => {
