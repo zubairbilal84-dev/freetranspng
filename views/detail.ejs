@@ -6,6 +6,16 @@
     <title><%= png.title %> - FreeTransPNG</title>
     <link rel="icon" href="/logo.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .checkerboard-bg {
+            background-image: linear-gradient(45deg, #e5e7eb 25%, transparent 25%), 
+                              linear-gradient(-45deg, #e5e7eb 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #e5e7eb 75%), 
+                              linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans">
 
@@ -24,9 +34,8 @@
     <main class="max-w-5xl mx-auto px-4 py-8">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 items-center">
             
-            <div class="bg-gray-100 rounded-xl p-6 flex items-center justify-center relative min-h-[300px]">
-                <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:12px_12px]"></div>
-                <img src="<%= png.imageUrl %>" alt="<%= png.title %>" class="max-h-72 max-w-full object-contain relative z-10">
+            <div class="checkerboard-bg rounded-xl p-6 flex items-center justify-center relative min-h-[300px]">
+                <img src="<%= getWatermarkedUrl(png.imageUrl) %>" alt="<%= png.title %>" class="max-h-72 max-w-full object-contain relative z-10">
             </div>
 
             <div>
@@ -39,26 +48,25 @@
                 </div>
 
                 <div class="mt-6">
-                    <!-- Trigger official download route to increment counter correctly -->
-                    <a href="/download/<%= png._id %>" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-center shadow-md transition block text-sm">
+                    <!-- Direct download route triggers clean original file download -->
+                    <a href="/download/<%= png._id %>" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-center shadow-md transition block text-sm">
                         📥 Download HD PNG
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Clean Image-Only Recommendations -->
+        <!-- Recommendations Section (Up to 40 Images) -->
         <% if (recommendations && recommendations.length > 0) { %>
             <div class="mt-12">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">Similar Recommendations</h3>
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Similar Recommendations (Up to 40)</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <% recommendations.forEach(item => { %>
                         <div class="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm group relative p-3">
-                            <a href="/png/<%= item._id %>" class="bg-gray-50 h-32 flex items-center justify-center relative overflow-hidden block rounded-lg">
-                                <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:10px_10px]"></div>
-                                <img src="<%= item.imageUrl %>" alt="<%= item.title %>" class="max-h-24 max-w-full object-contain relative z-10 group-hover:scale-110 transition duration-300">
+                            <a href="/png/<%= item._id %>" class="checkerboard-bg h-32 flex items-center justify-center relative overflow-hidden block rounded-lg p-2">
+                                <img src="<%= getWatermarkedUrl(item.imageUrl) %>" alt="<%= item.title %>" class="max-h-24 max-w-full object-contain relative z-10 group-hover:scale-110 transition duration-300">
                                 
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-2 text-white">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-2 text-white z-20">
                                     <span class="text-[11px] font-bold truncate"><%= item.title %></span>
                                 </div>
                             </a>

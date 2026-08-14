@@ -30,7 +30,6 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freetranspn
 .then(() => console.log('MongoDB Connected Successfully!'))
 .catch(err => console.log('DB Connection Error:', err));
 
-// Database Schemas for Parent and Sub Categories
 const parentCategorySchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true }
 });
@@ -57,6 +56,21 @@ const visitorSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
+
+// Helper function to inject Cloudinary watermark for Previews (Google / Direct Save protection)
+function getWatermarkedUrl(originalUrl) {
+    if (!originalUrl || !originalUrl.includes('cloudinary.com')) return originalUrl;
+    let parts = originalUrl.split('/upload/');
+    let watermarkText = encodeURIComponent("FreeTransPNG.store");
+    let transformation = `l_text:Arial_20_bold:${watermarkText},co_rgb:FFFFFF55,g_center,a_-30/fl_layer_apply/`;
+    return parts[0] + '/upload/' + transformation + parts[1];
+}
+
+// Make watermarked URL helper available globally in EJS templates
+app.use((req, res, next) => {
+    res.locals.getWatermarkedUrl = getWatermarkedUrl;
+    next();
+});
 
 app.use(async (req, res, next) => {
     if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api') && (!req.session || !req.session.isAdmin)) {
@@ -150,17 +164,20 @@ app.get('/api/search-suggestions', async (req, res) => {
     } catch (err) { res.json([]); }
 });
 
+// Detail Page with 40 Recommendations limit
 app.get('/png/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
         if (!png) return res.status(404).send("PNG not found");
 
         const primaryCat = png.category.split(',')[0].trim();
-        const recommendations = await Png.find({ category: { $regex: primaryCat, $options: 'i' }, _id: { $ne: png._id } }).limit(4);
+        // Recommendations limit increased from 4 to 40 images
+        const recommendations = await Png.find({ category: { $regex: primaryCat, $options: 'i' }, _id: { $ne: png._id } }).limit(40);
         res.render('detail', { png, recommendations });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
+// Force Clean Original Download Route (No Watermark on official download)
 app.get('/download/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -169,8 +186,17 @@ app.get('/download/:id', async (req, res) => {
         png.downloads += 1;
         await png.save();
 
-        res.redirect(png.imageUrl);
-    } catch (err) { res.status(500).send("Server Error"); }
+        const imageResponse = await fetch(png.imageUrl);
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        res.setHeader('Content-Disposition', `attachment; filename="${png.title.replace(/[^a-zA-Z0-9]/g, '_')}.png"`);
+        res.setHeader('Content-Type', 'image/png');
+        res.send(buffer);
+    } catch (err) { 
+        console.error(err);
+        res.status(500).send("Download Error"); 
+    }
 });
 
 app.get('/about', (req, res) => res.render('about'));
@@ -232,10 +258,14 @@ app.get('/admin', requireAdmin, async (req, res) => {
             };
         }
         
-        let pngQuery = Png.find(query).sort({ _id: -1 });
-        if (!searchAdmin && !selectedCategory) {
-            pngQuery = pngQuery.limit(20);
-        }
+        const page = parseInt(req.query.page) || 1;
+        const limit = 20;
+        const skip = (page - 1) * limit;
+
+        const totalFilteredPngs = await Png.countDocuments(query);
+        const totalPages = Math.ceil(totalFilteredPngs / limit);
+
+        let pngQuery = Png.find(query).sort({ _id: -1 }).skip(skip).limit(limit);
 
         const pngs = await pngQuery;
         const categories = await Category.find().sort({ name: 1 });
@@ -243,7 +273,11 @@ app.get('/admin', requireAdmin, async (req, res) => {
         const totalDownloads = await Png.aggregate([{ $group: { _id: null, sum: { $sum: "$downloads" } } }]);
         const sumDownloads = totalDownloads.length > 0 ? totalDownloads[0].sum : 0;
 
-        res.render('admin', { pngs, categories, totalPngs, sumDownloads, dailyVisits, weeklyVisits, monthlyVisits, searchAdmin, selectedCategory });
+        res.render('admin', { 
+            pngs, categories, totalPngs, sumDownloads, 
+            dailyVisits, weeklyVisits, monthlyVisits, 
+            searchAdmin, selectedCategory, currentPage: page, totalPages 
+        });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
@@ -278,7 +312,6 @@ app.get('/admin/visitors/:filter', requireAdmin, async (req, res) => {
     }
 });
 
-// Category & Parent Category Management Routes
 app.get('/admin/categories', requireAdmin, async (req, res) => {
     try {
         const searchCat = req.query.search || '';

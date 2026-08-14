@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FreeTransPNG - Free HD Transparent PNG Marketplace</title>
     <link rel="icon" href="/logo.png" type="image/png">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         .animated-header {
             background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
@@ -26,6 +26,15 @@
         }
         .png-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
         .png-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.12); }
+        /* Transparent Checkerboard Pattern CSS */
+        .checkerboard-bg {
+            background-image: linear-gradient(45deg, #e5e7eb 25%, transparent 25%), 
+                              linear-gradient(-45deg, #e5e7eb 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #e5e7eb 75%), 
+                              linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
@@ -92,11 +101,10 @@
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <% chunk.forEach(png => { %>
                         <div class="png-card bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm group relative flex flex-col justify-center items-center p-3">
-                            <a href="/png/<%= png._id %>" class="w-full flex items-center justify-center relative overflow-hidden block">
-                                <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:10px_10px]"></div>
-                                <img src="<%= png.imageUrl %>" alt="<%= png.title %>" class="w-auto h-auto max-h-48 max-w-full object-contain relative z-10 group-hover:scale-105 transition duration-300">
+                            <a href="/png/<%= png._id %>" class="w-full flex items-center justify-center relative overflow-hidden block checkerboard-bg rounded-xl p-3 min-h-[160px]">
+                                <img src="<%= getWatermarkedUrl(png.imageUrl) %>" alt="<%= png.title %>" class="w-auto h-auto max-h-40 max-w-full object-contain relative z-10 group-hover:scale-105 transition duration-300">
                                 
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-3 text-white rounded-xl">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-3 text-white rounded-xl z-20">
                                     <span class="text-xs font-bold truncate"><%= png.title %></span>
                                 </div>
                             </a>
@@ -130,10 +138,8 @@
 
     </main>
 
-    <!-- Script -->
     <script>
         const searchInput = document.getElementById('searchInput');
-        
         let popularTexts = [];
         try {
             popularTexts = JSON.parse(searchInput.getAttribute('data-popular'));
@@ -141,14 +147,10 @@
             popularTexts = ['Diya', 'Logo', 'Vector'];
         }
         
-        let textIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-
+        let textIndex = 0, charIndex = 0, isDeleting = false;
         function typePlaceholder() {
             if(popularTexts.length === 0) return;
             let currentText = popularTexts[textIndex];
-            
             if (isDeleting) {
                 searchInput.setAttribute('placeholder', currentText.substring(0, charIndex - 1));
                 charIndex--;
@@ -156,9 +158,7 @@
                 searchInput.setAttribute('placeholder', currentText.substring(0, charIndex + 1));
                 charIndex++;
             }
-
             let typeSpeed = isDeleting ? 40 : 80;
-
             if (!isDeleting && charIndex === currentText.length) {
                 typeSpeed = 1500;
                 isDeleting = true;
@@ -167,16 +167,11 @@
                 textIndex = (textIndex + 1) % popularTexts.length;
                 typeSpeed = 500;
             }
-
             setTimeout(typePlaceholder, typeSpeed);
         }
-
-        if(popularTexts.length > 0) {
-            setTimeout(typePlaceholder, 1000);
-        }
+        if(popularTexts.length > 0) setTimeout(typePlaceholder, 1000);
 
         const suggestionsBox = document.getElementById('suggestionsBox');
-
         searchInput.addEventListener('input', async function() {
             const query = this.value.trim();
             if (query.length < 1) {
