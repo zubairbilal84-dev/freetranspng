@@ -13,84 +13,172 @@
         <a href="/admin" class="bg-blue-600 px-4 py-2 rounded text-sm hover:bg-blue-700 font-medium">← Back to Dashboard</a>
     </header>
 
-    <main class="container mx-auto p-6 max-w-2xl space-y-6">
-        <!-- Add Category Form -->
-        <div class="bg-white p-6 rounded-xl shadow">
-            <h2 class="text-lg font-bold text-gray-800 mb-3">Add New Category</h2>
-            <form action="/admin/category/add" method="POST" class="flex gap-2">
-                <input type="text" name="name" required placeholder="Enter Category Name (e.g. Furniture, Nature...)" class="w-full p-2.5 border rounded-lg text-sm outline-none">
-                <button type="submit" class="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-green-700">Add</button>
-            </form>
-        </div>
-
-        <!-- Search and List Categories with Searchable Dropdown -->
-        <div class="bg-white p-6 rounded-xl shadow space-y-4">
-            <div class="flex justify-between items-center flex-wrap gap-2">
-                <h2 class="text-lg font-bold text-gray-800">All Categories (<%= categories.length %>)</h2>
-                
-                <!-- Search Bar with Live Dropdown -->
-                <form action="/admin/categories" method="GET" class="flex gap-2 relative">
-                    <div class="relative">
-                        <input type="text" id="catSearchBox" name="search" value="<%= searchCat || '' %>" placeholder="Search categories..." autocomplete="off" class="p-2 border rounded-lg text-sm outline-none bg-white" oninput="filterCatDropdown()" onclick="showCatDropdown()">
-                        
-                        <!-- Floating Dropdown List -->
-                        <div id="catDropdownList" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
-                            <% categories.forEach(cat => { %>
-                                <div onclick="selectCategoryItem('<%= cat.name %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 cat-dropdown-item"><%= cat.name %></div>
-                            <% }) %>
-                        </div>
-                    </div>
-                    <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Search</button>
+    <main class="container mx-auto p-6 max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Parent Categories Section -->
+        <div class="space-y-6">
+            <div class="bg-indigo-50 border border-indigo-100 p-6 rounded-xl shadow">
+                <h2 class="text-lg font-bold text-indigo-900 mb-3">📁 1. Add Parent Category</h2>
+                <form action="/admin/parent-category/add" method="POST" class="flex gap-2">
+                    <input type="text" name="name" required placeholder="e.g. Independence Day, Festival..." class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white">
+                    <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700">Add</button>
                 </form>
             </div>
 
-            <div class="max-h-96 overflow-y-auto space-y-2 divide-y">
-                <% if(categories.length > 0) { %>
-                    <% categories.forEach(cat => { %>
-                        <div class="flex justify-between items-center pt-2 px-2 text-sm">
-                            <span class="font-medium text-gray-700"><%= cat.name %></span>
-                            <form action="/admin/category/delete/<%= cat._id %>" method="POST" onsubmit="return confirm('Delete this category?');">
-                                <button type="submit" class="text-red-500 font-bold hover:underline text-xs bg-red-50 px-2.5 py-1 rounded">Delete</button>
-                            </form>
+            <div class="bg-white p-6 rounded-xl shadow">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">All Parent Categories (<%= parentCategories.length %>)</h2>
+                <div class="max-h-60 overflow-y-auto space-y-2 divide-y">
+                    <% if(parentCategories.length > 0) { %>
+                        <% parentCategories.forEach(pCat => { %>
+                            <div class="flex justify-between items-center pt-2 px-2 text-sm">
+                                <span class="font-bold text-indigo-700"><%= pCat.name %></span>
+                                <form action="/admin/parent-category/delete/<%= pCat._id %>" method="POST" onsubmit="return confirm('Delete this Parent Category?');">
+                                    <button type="submit" class="text-red-500 font-bold hover:underline text-xs bg-red-50 px-2.5 py-1 rounded">Delete</button>
+                                </form>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p class="text-center text-gray-500 py-4 text-sm">No Parent Categories found.</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sub Categories Section -->
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow">
+                <h2 class="text-lg font-bold text-gray-800 mb-3">📂 2. Add Sub-Category</h2>
+                <form action="/admin/category/add" method="POST" class="space-y-3">
+                    <input type="text" name="name" required placeholder="Category Name (e.g. Tiranga, Badge...)" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-gray-50">
+                    
+                    <div class="relative">
+                        <input type="text" id="addParentSearch" placeholder="Search & Select Parent (Optional)" autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterAddParent()" onclick="showAddParentDrop()">
+                        <input type="hidden" name="parentCategory" id="addParentHidden">
+                        
+                        <div id="addParentDrop" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                            <div onclick="selectAddParent('')" class="p-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-500 italic">None (Stand-alone)</div>
+                            <% parentCategories.forEach(pCat => { %>
+                                <div onclick="selectAddParent('<%= pCat.name %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 add-parent-item"><%= pCat.name %></div>
+                            <% }) %>
                         </div>
-                    <% }) %>
-                <% } else { %>
-                    <p class="text-center text-gray-500 py-4">No categories found.</p>
-                <% } %>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-green-700">Add Category</button>
+                </form>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow space-y-4">
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <h2 class="text-lg font-bold text-gray-800">All Categories (<%= categories.length %>)</h2>
+                    <form action="/admin/categories" method="GET" class="flex gap-2">
+                        <input type="text" name="search" value="<%= searchCat || '' %>" placeholder="Search..." autocomplete="off" class="p-2 border rounded-lg text-sm outline-none bg-white">
+                        <button type="submit" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">Search</button>
+                    </form>
+                </div>
+
+                <div class="max-h-[400px] overflow-y-auto space-y-2 divide-y">
+                    <% if(categories.length > 0) { %>
+                        <% categories.forEach(cat => { %>
+                            <div class="flex justify-between items-center pt-2 px-2 text-sm">
+                                <div>
+                                    <span class="font-medium text-gray-800"><%= cat.name %></span>
+                                    <% if(cat.parentCategory) { %>
+                                        <span class="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1"><%= cat.parentCategory %></span>
+                                    <% } %>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="openEditModal(this)" data-id="<%= cat._id %>" data-name="<%= cat.name %>" data-parent="<%= cat.parentCategory || '' %>" class="text-blue-600 font-bold hover:underline text-xs bg-blue-50 px-2.5 py-1 rounded">Edit</button>
+                                    <form action="/admin/category/delete/<%= cat._id %>" method="POST" onsubmit="return confirm('Delete this category?');">
+                                        <button type="submit" class="text-red-500 font-bold hover:underline text-xs bg-red-50 px-2.5 py-1 rounded">Del</button>
+                                    </form>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p class="text-center text-gray-500 py-4">No categories found.</p>
+                    <% } %>
+                </div>
             </div>
         </div>
     </main>
 
+    <!-- Edit Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">Edit Category</h2>
+            <form id="editForm" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Category Name</label>
+                    <input type="text" name="name" id="editCatName" required class="w-full p-2.5 border rounded-lg text-sm outline-none">
+                </div>
+                
+                <div class="relative">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Parent Category</label>
+                    <input type="text" id="editParentSearch" placeholder="Search & Select Parent" autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterEditParent()" onclick="showEditParentDrop()">
+                    <input type="hidden" name="parentCategory" id="editParentHidden">
+                    
+                    <div id="editParentDrop" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                        <div onclick="selectEditParent('')" class="p-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-500 italic">None (Remove Parent)</div>
+                        <% parentCategories.forEach(pCat => { %>
+                            <div onclick="selectEditParent('<%= pCat.name %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 edit-parent-item"><%= pCat.name %></div>
+                        <% }) %>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700">Update</button>
+                    <button type="button" onclick="closeEditModal()" class="w-full bg-gray-300 text-gray-800 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-400">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        function showCatDropdown() {
-            document.getElementById('catDropdownList').classList.remove('hidden');
+        function showAddParentDrop() { document.getElementById('addParentDrop').classList.remove('hidden'); }
+        function filterAddParent() {
+            let input = document.getElementById('addParentSearch').value.toLowerCase();
+            let items = document.querySelectorAll('.add-parent-item');
+            document.getElementById('addParentDrop').classList.remove('hidden');
+            items.forEach(item => { item.style.display = item.textContent.toLowerCase().includes(input) ? "block" : "none"; });
+        }
+        function selectAddParent(name) {
+            document.getElementById('addParentSearch').value = name;
+            document.getElementById('addParentHidden').value = name;
+            document.getElementById('addParentDrop').classList.add('hidden');
         }
 
-        function filterCatDropdown() {
-            let input = document.getElementById('catSearchBox').value.toLowerCase();
-            let items = document.querySelectorAll('.cat-dropdown-item');
-            let dropdown = document.getElementById('catDropdownList');
-            dropdown.classList.remove('hidden');
-            
-            items.forEach(item => {
-                let text = item.textContent.toLowerCase();
-                if (text.includes(input)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
-            });
+        function openEditModal(btn) {
+            let id = btn.getAttribute('data-id');
+            let name = btn.getAttribute('data-name');
+            let parent = btn.getAttribute('data-parent');
+
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editForm').action = '/admin/category/edit/' + id;
+            document.getElementById('editCatName').value = name;
+            document.getElementById('editParentSearch').value = parent;
+            document.getElementById('editParentHidden').value = parent;
         }
 
-        function selectCategoryItem(name) {
-            document.getElementById('catSearchBox').value = name;
-            document.getElementById('catDropdownList').classList.add('hidden');
+        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+        function showEditParentDrop() { document.getElementById('editParentDrop').classList.remove('hidden'); }
+        function filterEditParent() {
+            let input = document.getElementById('editParentSearch').value.toLowerCase();
+            let items = document.querySelectorAll('.edit-parent-item');
+            document.getElementById('editParentDrop').classList.remove('hidden');
+            items.forEach(item => { item.style.display = item.textContent.toLowerCase().includes(input) ? "block" : "none"; });
+        }
+        function selectEditParent(name) {
+            document.getElementById('editParentSearch').value = name;
+            document.getElementById('editParentHidden').value = name;
+            document.getElementById('editParentDrop').classList.add('hidden');
         }
 
-        // Hide dropdown when clicking outside
         window.addEventListener('click', function(e) {
-            if (!document.getElementById('catSearchBox').contains(e.target) && !document.getElementById('catDropdownList').contains(e.target)) {
-                document.getElementById('catDropdownList').classList.add('hidden');
+            if (!document.getElementById('addParentSearch').contains(e.target) && !document.getElementById('addParentDrop').contains(e.target)) {
+                document.getElementById('addParentDrop').classList.add('hidden');
+            }
+            if (!document.getElementById('editParentSearch').contains(e.target) && !document.getElementById('editParentDrop').contains(e.target)) {
+                document.getElementById('editParentDrop').classList.add('hidden');
             }
         });
     </script>

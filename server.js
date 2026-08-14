@@ -30,14 +30,21 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freetranspn
 .then(() => console.log('MongoDB Connected Successfully!'))
 .catch(err => console.log('DB Connection Error:', err));
 
-const categorySchema = new mongoose.Schema({
+// Database Schemas for Parent and Sub Categories
+const parentCategorySchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true }
+});
+const ParentCategory = mongoose.model('ParentCategory', parentCategorySchema);
+
+const categorySchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true },
+    parentCategory: { type: String, default: '' }
 });
 const Category = mongoose.model('Category', categorySchema);
 
 const pngSchema = new mongoose.Schema({
     title: { type: String, required: true },
-    category: { type: String, required: true }, // Can store comma separated multiple categories
+    category: { type: String, required: true },
     tags: { type: String, required: true },
     imageUrl: { type: String, required: true },
     downloads: { type: Number, default: 0 }
@@ -225,7 +232,6 @@ app.get('/admin', requireAdmin, async (req, res) => {
             };
         }
         
-        // Pagination: Limit to 20 recent items if no search/filter is active
         let pngQuery = Png.find(query).sort({ _id: -1 });
         if (!searchAdmin && !selectedCategory) {
             pngQuery = pngQuery.limit(20);
@@ -272,23 +278,59 @@ app.get('/admin/visitors/:filter', requireAdmin, async (req, res) => {
     }
 });
 
+// Category & Parent Category Management Routes
 app.get('/admin/categories', requireAdmin, async (req, res) => {
     try {
         const searchCat = req.query.search || '';
         const query = searchCat ? { name: { $regex: searchCat, $options: 'i' } } : {};
+        
         const categories = await Category.find(query).sort({ name: 1 });
-        res.render('categories', { categories, searchCat });
+        const parentCategories = await ParentCategory.find().sort({ name: 1 });
+        
+        res.render('categories', { categories, parentCategories, searchCat });
     } catch (err) { res.status(500).send("Server Error"); }
+});
+
+app.post('/admin/parent-category/add', requireAdmin, async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (name) {
+            await ParentCategory.updateOne({ name: name.trim() }, { name: name.trim() }, { upsert: true });
+        }
+        res.redirect('/admin/categories');
+    } catch (err) { res.status(500).send("Error adding parent category"); }
+});
+
+app.post('/admin/parent-category/delete/:id', requireAdmin, async (req, res) => {
+    try {
+        await ParentCategory.findByIdAndDelete(req.params.id);
+        res.redirect('/admin/categories');
+    } catch (err) { res.status(500).send("Error deleting parent category"); }
 });
 
 app.post('/admin/category/add', requireAdmin, async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, parentCategory } = req.body;
         if (name) {
-            await Category.updateOne({ name: name.trim() }, { name: name.trim() }, { upsert: true });
+            await Category.updateOne(
+                { name: name.trim() }, 
+                { name: name.trim(), parentCategory: parentCategory ? parentCategory.trim() : '' }, 
+                { upsert: true }
+            );
         }
         res.redirect('/admin/categories');
     } catch (err) { res.status(500).send("Error adding category"); }
+});
+
+app.post('/admin/category/edit/:id', requireAdmin, async (req, res) => {
+    try {
+        const { name, parentCategory } = req.body;
+        await Category.findByIdAndUpdate(req.params.id, { 
+            name: name.trim(), 
+            parentCategory: parentCategory ? parentCategory.trim() : '' 
+        });
+        res.redirect('/admin/categories');
+    } catch (err) { res.status(500).send("Error updating category"); }
 });
 
 app.post('/admin/category/delete/:id', requireAdmin, async (req, res) => {
