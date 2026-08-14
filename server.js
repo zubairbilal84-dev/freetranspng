@@ -14,14 +14,12 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 
-// Session setup for secure admin login
 app.use(session({
     secret: 'freetranspng_super_secret_key',
     resave: false,
     saveUninitialized: true
 }));
 
-// Cloudinary Configuration
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -39,14 +37,13 @@ const Category = mongoose.model('Category', categorySchema);
 
 const pngSchema = new mongoose.Schema({
     title: { type: String, required: true },
-    category: { type: String, required: true },
+    category: { type: String, required: true }, // Can store comma separated multiple categories
     tags: { type: String, required: true },
     imageUrl: { type: String, required: true },
     downloads: { type: Number, default: 0 }
 });
 const Png = mongoose.model('Png', pngSchema);
 
-// Visitor Analytics Schema with Country Support
 const visitorSchema = new mongoose.Schema({
     ip: { type: String, default: 'Unknown' },
     country: { type: String, default: 'Unknown' },
@@ -54,10 +51,7 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
-// Middleware to track website visits with GeoIP
-// Updated Middleware to exclude Admin and fetch country accurately using ip-api.com
 app.use(async (req, res, next) => {
-    // Exclude admin pages, api, uploads, and check if logged in as admin
     if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api') && (!req.session || !req.session.isAdmin)) {
         try {
             let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
@@ -85,11 +79,9 @@ app.use(async (req, res, next) => {
     next();
 });
 
-// Multer Memory Storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// --- ADMIN AUTHENTICATION MIDDLEWARE ---
 const requireAdmin = (req, res, next) => {
     if (req.session && req.session.isAdmin) {
         next();
@@ -98,8 +90,6 @@ const requireAdmin = (req, res, next) => {
     }
 };
 
-// --- ROUTES ---
-
 app.get('/', async (req, res) => {
     try {
         const search = req.query.search || '';
@@ -107,7 +97,7 @@ app.get('/', async (req, res) => {
         
         let query = {};
         if (selectedCategory) {
-            query.category = selectedCategory;
+            query.category = { $regex: selectedCategory, $options: 'i' };
         }
         if (search) {
             query.$or = [
@@ -158,7 +148,8 @@ app.get('/png/:id', async (req, res) => {
         const png = await Png.findById(req.params.id);
         if (!png) return res.status(404).send("PNG not found");
 
-        const recommendations = await Png.find({ category: png.category, _id: { $ne: png._id } }).limit(4);
+        const primaryCat = png.category.split(',')[0].trim();
+        const recommendations = await Png.find({ category: { $regex: primaryCat, $options: 'i' }, _id: { $ne: png._id } }).limit(4);
         res.render('detail', { png, recommendations });
     } catch (err) { res.status(500).send("Server Error"); }
 });
@@ -216,14 +207,14 @@ app.get('/admin', requireAdmin, async (req, res) => {
         let query = {};
         if (selectedCategory && searchAdmin) {
             query = {
-                category: selectedCategory,
+                category: { $regex: selectedCategory, $options: 'i' },
                 $or: [
                     { title: { $regex: searchAdmin, $options: 'i' } },
                     { tags: { $regex: searchAdmin, $options: 'i' } }
                 ]
             };
         } else if (selectedCategory) {
-            query.category = selectedCategory;
+            query.category = { $regex: selectedCategory, $options: 'i' };
         } else if (searchAdmin) {
             query = { 
                 $or: [
@@ -234,7 +225,13 @@ app.get('/admin', requireAdmin, async (req, res) => {
             };
         }
         
-        const pngs = await Png.find(query).sort({ _id: -1 });
+        // Pagination: Limit to 20 recent items if no search/filter is active
+        let pngQuery = Png.find(query).sort({ _id: -1 });
+        if (!searchAdmin && !selectedCategory) {
+            pngQuery = pngQuery.limit(20);
+        }
+
+        const pngs = await pngQuery;
         const categories = await Category.find().sort({ name: 1 });
         const totalPngs = await Png.countDocuments();
         const totalDownloads = await Png.aggregate([{ $group: { _id: null, sum: { $sum: "$downloads" } } }]);
@@ -244,7 +241,6 @@ app.get('/admin', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Detailed Visitors Route for Clickable Cards
 app.get('/admin/visitors/:filter', requireAdmin, async (req, res) => {
     try {
         const filter = req.params.filter;

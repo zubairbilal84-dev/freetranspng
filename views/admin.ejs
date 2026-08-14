@@ -36,41 +36,37 @@
             </div>
         </div>
 
-        <!-- 📊 Traffic Analytics Section (Clickable Cards) -->
+        <!-- 📊 Traffic Analytics Section -->
         <div class="bg-white p-6 rounded-xl shadow">
             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📈</span> Website Traffic Overview (Click cards for details)</h2>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                
                 <a href="/admin/visitors/today" class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-center justify-between hover:bg-indigo-100 transition cursor-pointer">
                     <div>
-                        <p class="text-xs text-indigo-600 font-bold uppercase tracking-wider">Today's Visits (View Details)</p>
+                        <p class="text-xs text-indigo-600 font-bold uppercase tracking-wider">Today's Visits</p>
                         <h3 class="text-2xl font-extrabold text-indigo-900 mt-1"><%= typeof dailyVisits !== 'undefined' ? dailyVisits : 0 %></h3>
                     </div>
                     <div class="bg-indigo-100 p-3 rounded-lg text-indigo-600 text-lg">📅</div>
                 </a>
-
                 <a href="/admin/visitors/weekly" class="bg-purple-50 border border-purple-100 p-4 rounded-xl flex items-center justify-between hover:bg-purple-100 transition cursor-pointer">
                     <div>
-                        <p class="text-xs text-purple-600 font-bold uppercase tracking-wider">Weekly Visits (View Details)</p>
+                        <p class="text-xs text-purple-600 font-bold uppercase tracking-wider">Weekly Visits</p>
                         <h3 class="text-2xl font-extrabold text-purple-900 mt-1"><%= typeof weeklyVisits !== 'undefined' ? weeklyVisits : 0 %></h3>
                     </div>
                     <div class="bg-purple-100 p-3 rounded-lg text-purple-600 text-lg">📊</div>
                 </a>
-
                 <a href="/admin/visitors/monthly" class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between hover:bg-emerald-100 transition cursor-pointer">
                     <div>
-                        <p class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Monthly Visits (View Details)</p>
+                        <p class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Monthly Visits</p>
                         <h3 class="text-2xl font-extrabold text-emerald-900 mt-1"><%= typeof monthlyVisits !== 'undefined' ? monthlyVisits : 0 %></h3>
                     </div>
                     <div class="bg-emerald-100 p-3 rounded-lg text-emerald-600 text-lg">🌐</div>
                 </a>
-
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- Left Column: Upload PNG Form with Live Searchable Dropdown -->
+            <!-- Left Column: Upload PNG Form with Multiple Categories & Smart Tags -->
             <div class="bg-white p-6 rounded-xl shadow h-fit">
                 <h2 class="text-lg font-bold text-gray-800 mb-4">Upload New PNG</h2>
                 <form action="/admin/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
@@ -79,24 +75,38 @@
                         <input type="text" name="title" required placeholder="e.g. Diya PNG" class="w-full p-2.5 border rounded-lg text-sm outline-none">
                     </div>
                     
-                    <!-- Searchable Category Dropdown for Upload -->
+                    <!-- Multi-Category Select with Parent/Group Filtering & Recent Suggestions -->
                     <div class="relative">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Category</label>
-                        <input type="text" id="uploadCatInput" placeholder="Type to search category..." autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterUploadCategories()" onclick="showUploadDropdown()">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Categories (Multiple)</label>
+                        <input type="text" id="uploadCatInput" placeholder="Type parent/sub category..." autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterUploadCategories()" onclick="showUploadDropdown()">
                         <input type="hidden" name="category" id="uploadCatHidden" required>
-                        <div id="uploadCatDropdown" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
-                            <% categories.forEach(cat => { %>
-                                <div onclick="selectUploadCategory('<%= cat.name %>')" class="p-2.5 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 category-item"><%= cat.name %></div>
-                            <% }) %>
+                        
+                        <!-- Selected Categories Container (Pills) -->
+                        <div id="selectedCatContainer" class="flex flex-wrap gap-1 mt-2"></div>
+
+                        <div id="uploadCatDropdown" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto p-1">
+                            <!-- Recent 4 Categories Section -->
+                            <div id="recentCategoriesSection" class="border-b pb-1 mb-1">
+                                <div class="text-[10px] font-bold text-gray-400 px-2 uppercase">Recent Used:</div>
+                                <div id="recentCatList" class="flex flex-wrap gap-1 p-1"></div>
+                            </div>
+                            <!-- All Categories List -->
+                            <div id="allCatList">
+                                <% categories.forEach(cat => { %>
+                                    <div onclick="toggleUploadCategory('<%= cat.name %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 category-item rounded"><%= cat.name %></div>
+                                <% }) %>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Comma Separated Smart Tags -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tags (Press Enter or comma to add)</label>
-                        <input type="text" id="tagInput" placeholder="Type tag & press enter" class="w-full p-2.5 border rounded-lg text-sm outline-none mb-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tags (Paste with commas, press Enter)</label>
+                        <input type="text" id="tagInput" placeholder="Type or paste tags with commas" class="w-full p-2.5 border rounded-lg text-sm outline-none mb-2">
                         <div id="tagContainer" class="flex flex-wrap gap-1 mb-1"></div>
                         <input type="hidden" name="tags" id="hiddenTags" required>
                     </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Select PNG File</label>
                         <input type="file" name="pngImage" accept="image/png" required class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
@@ -105,25 +115,16 @@
                 </form>
             </div>
 
-            <!-- Right Column: Manage Uploaded PNGs List Section -->
+            <!-- Right Column: Manage Uploaded PNGs List Section (Latest 20 default) -->
             <div class="bg-white p-6 rounded-xl shadow md:col-span-2 flex flex-col">
                 <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
-                    <h2 class="text-lg font-bold text-gray-800">Manage Uploaded PNGs</h2>
+                    <h2 class="text-lg font-bold text-gray-800">Manage Uploaded PNGs <span class="text-xs text-gray-400 font-normal">(Showing latest or filtered)</span></h2>
                     
-                    <!-- Admin Search with Searchable Category Filter -->
                     <form action="/admin" method="GET" class="flex gap-2 flex-wrap items-center">
                         <input type="text" name="search" value="<%= searchAdmin || '' %>" placeholder="Search title/tags..." class="p-2 border rounded-lg text-sm outline-none">
                         
-                        <!-- Searchable Category Filter for Table -->
                         <div class="relative">
-                            <input type="text" id="filterCatInput" placeholder="Filter category..." autocomplete="off" class="p-2 border rounded-lg text-sm outline-none bg-white" oninput="filterTableCategories()" onclick="showFilterDropdown()">
-                            <input type="hidden" name="category" id="filterCatHidden" value="<%= typeof selectedCategory !== 'undefined' ? selectedCategory : '' %>">
-                            <div id="filterCatDropdown" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                <div onclick="selectFilterCategory('')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700">All Categories</div>
-                                <% categories.forEach(cat => { %>
-                                    <div onclick="selectFilterCategory('<%= cat.name %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 filter-category-item"><%= cat.name %></div>
-                                <% }) %>
-                            </div>
+                            <input type="text" id="filterCatInput" name="category" value="<%= typeof selectedCategory !== 'undefined' ? selectedCategory : '' %>" placeholder="Parent/Sub Category..." autocomplete="off" class="p-2 border rounded-lg text-sm outline-none bg-white">
                         </div>
 
                         <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Search</button>
@@ -136,7 +137,7 @@
                             <tr class="bg-gray-200 text-gray-700 text-sm">
                                 <th class="p-3">Preview</th>
                                 <th class="p-3">Title & Tags</th>
-                                <th class="p-3">Category</th>
+                                <th class="p-3">Categories</th>
                                 <th class="p-3">Downloads</th>
                                 <th class="p-3">Actions</th>
                             </tr>
@@ -176,15 +177,36 @@
     </main>
 
     <script>
+        // --- Multi-Category Selection & Recent Suggestions Logic ---
+        let selectedCategoriesArray = [];
+        let recentCategories = JSON.parse(localStorage.getItem('recentCats') || '[]');
+
         function showUploadDropdown() {
             document.getElementById('uploadCatDropdown').classList.remove('hidden');
+            renderRecentCategories();
+        }
+
+        function renderRecentCategories() {
+            let container = document.getElementById('recentCatList');
+            container.innerHTML = '';
+            if(recentCategories.length === 0) {
+                document.getElementById('recentCategoriesSection').style.display = 'none';
+                return;
+            }
+            document.getElementById('recentCategoriesSection').style.display = 'block';
+            recentCategories.forEach(cat => {
+                let span = document.createElement('span');
+                span.className = "bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded cursor-pointer font-medium hover:bg-purple-200";
+                span.textContent = cat;
+                span.onclick = () => toggleUploadCategory(cat);
+                container.appendChild(span);
+            });
         }
 
         function filterUploadCategories() {
             let input = document.getElementById('uploadCatInput').value.toLowerCase();
             let items = document.querySelectorAll('.category-item');
-            let dropdown = document.getElementById('uploadCatDropdown');
-            dropdown.classList.remove('hidden');
+            document.getElementById('uploadCatDropdown').classList.remove('hidden');
             
             items.forEach(item => {
                 let text = item.textContent.toLowerCase();
@@ -196,47 +218,43 @@
             });
         }
 
-        function selectUploadCategory(name) {
-            document.getElementById('uploadCatInput').value = name;
-            document.getElementById('uploadCatHidden').value = name;
-            document.getElementById('uploadCatDropdown').classList.add('hidden');
+        function toggleUploadCategory(name) {
+            if (!selectedCategoriesArray.includes(name)) {
+                selectedCategoriesArray.push(name);
+                // Update recent list
+                recentCategories = [name, ...recentCategories.filter(c => c !== name)].slice(0, 4);
+                localStorage.setItem('recentCats', JSON.stringify(recentCategories));
+            } else {
+                selectedCategoriesArray = selectedCategoriesArray.filter(c => c !== name);
+            }
+            renderSelectedCategories();
+            document.getElementById('uploadCatInput').value = '';
         }
 
-        function showFilterDropdown() {
-            document.getElementById('filterCatDropdown').classList.remove('hidden');
-        }
-
-        function filterTableCategories() {
-            let input = document.getElementById('filterCatInput').value.toLowerCase();
-            let items = document.querySelectorAll('.filter-category-item');
-            let dropdown = document.getElementById('filterCatDropdown');
-            dropdown.classList.remove('hidden');
-            
-            items.forEach(item => {
-                let text = item.textContent.toLowerCase();
-                if (text.includes(input)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
+        function renderSelectedCategories() {
+            let container = document.getElementById('selectedCatContainer');
+            container.innerHTML = '';
+            selectedCategoriesArray.forEach((cat, index) => {
+                let span = document.createElement('span');
+                span.className = "bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded flex items-center gap-1 font-medium";
+                span.innerHTML = `${cat} <button type="button" onclick="removeSelectedCategory(${index})" class="text-red-500 font-bold ml-1">×</button>`;
+                container.appendChild(span);
             });
+            document.getElementById('uploadCatHidden').value = selectedCategoriesArray.join(', ');
         }
 
-        function selectFilterCategory(name) {
-            document.getElementById('filterCatInput').value = name;
-            document.getElementById('filterCatHidden').value = name;
-            document.getElementById('filterCatDropdown').classList.add('hidden');
+        function removeSelectedCategory(index) {
+            selectedCategoriesArray.splice(index, 1);
+            renderSelectedCategories();
         }
 
         window.addEventListener('click', function(e) {
             if (!document.getElementById('uploadCatInput').contains(e.target) && !document.getElementById('uploadCatDropdown').contains(e.target)) {
                 document.getElementById('uploadCatDropdown').classList.add('hidden');
             }
-            if (!document.getElementById('filterCatInput').contains(e.target) && !document.getElementById('filterCatDropdown').contains(e.target)) {
-                document.getElementById('filterCatDropdown').classList.add('hidden');
-            }
         });
 
+        // --- Smart Comma-Separated Tag System ---
         const tagInput = document.getElementById('tagInput');
         const tagContainer = document.getElementById('tagContainer');
         const hiddenTags = document.getElementById('hiddenTags');
@@ -245,24 +263,38 @@
         tagInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault();
-                let val = tagInput.value.trim().replace(',', '');
-                if (val && !tagsArray.includes(val)) {
-                    tagsArray.push(val);
-                    renderTags();
-                }
+                processTagsInput(tagInput.value);
                 tagInput.value = '';
             }
         });
+
+        tagInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            let pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            processTagsInput(pasteData);
+            tagInput.value = '';
+        });
+
+        function processTagsInput(str) {
+            let parts = str.split(',');
+            parts.forEach(part => {
+                let val = part.trim().replace(/^#+/, '');
+                if (val && !tagsArray.includes(val)) {
+                    tagsArray.push(val);
+                }
+            });
+            renderTags();
+        }
 
         function renderTags() {
             tagContainer.innerHTML = '';
             tagsArray.forEach((tag, index) => {
                 let span = document.createElement('span');
-                span.className = "bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded flex items-center gap-1 font-medium";
+                span.className = "bg-green-100 text-green-700 text-xs px-2 py-1 rounded flex items-center gap-1 font-medium";
                 span.innerHTML = `${tag} <button type="button" onclick="removeTag(${index})" class="text-red-500 font-bold ml-1">×</button>`;
                 tagContainer.appendChild(span);
             });
-            hiddenTags.value = tagsArray.join(',');
+            hiddenTags.value = tagsArray.join(', ');
         }
 
         function removeTag(index) {
