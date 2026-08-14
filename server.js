@@ -55,25 +55,29 @@ const visitorSchema = new mongoose.Schema({
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
 // Middleware to track website visits with GeoIP
+// Updated Middleware to exclude Admin and fetch country accurately using ip-api.com
 app.use(async (req, res, next) => {
-    if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api')) {
+    // Exclude admin pages, api, uploads, and check if logged in as admin
+    if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api') && (!req.session || !req.session.isAdmin)) {
         try {
             let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
             if (ip.includes(',')) ip = ip.split(',')[0].trim();
             if (ip.startsWith('::ffff:')) ip = ip.replace('::ffff:', '');
 
             let country = 'Unknown';
-            if (ip && ip !== '127.0.0.1' && ip !== 'localhost') {
-                const response = await fetch(`https://ipapi.co/${ip}/country_name/`);
+            if (ip && ip !== '127.0.0.1' && ip !== 'localhost' && ip !== '::1') {
+                const response = await fetch(`http://ip-api.com/json/${ip}`);
                 if (response.ok) {
-                    const text = await response.text();
-                    if (text && !text.includes('Undefined')) country = text.trim();
+                    const data = await response.json();
+                    if (data && data.status === 'success') {
+                        country = data.country;
+                    }
                 }
             } else {
                 country = 'Localhost';
             }
 
-            await Visitor.create({ ip, country });
+            await Visitor.create({ ip: ip || 'Unknown', country });
         } catch (err) {
             console.error('Visitor tracking error:', err);
         }
