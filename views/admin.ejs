@@ -38,7 +38,7 @@
 
         <!-- 📊 Traffic Analytics Section -->
         <div class="bg-white p-6 rounded-xl shadow">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📈</span> Website Traffic Overview (Click cards for details)</h2>
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📈</span> Website Traffic Overview</h2>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <a href="/admin/visitors/today" class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-center justify-between hover:bg-indigo-100 transition cursor-pointer">
                     <div>
@@ -66,7 +66,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- Left Column: Upload PNG Form with Multiple Categories & Smart Tags -->
+            <!-- Left Column: Upload PNG Form -->
             <div class="bg-white p-6 rounded-xl shadow h-fit">
                 <h2 class="text-lg font-bold text-gray-800 mb-4">Upload New PNG</h2>
                 <form action="/admin/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
@@ -75,26 +75,52 @@
                         <input type="text" name="title" required placeholder="e.g. Diya PNG" class="w-full p-2.5 border rounded-lg text-sm outline-none">
                     </div>
                     
-                    <!-- Multi-Category Select with Parent/Group Filtering & Recent Suggestions -->
+                    <!-- Interactive Parent & Sub-Category Selection -->
                     <div class="relative">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Select Categories (Multiple)</label>
-                        <input type="text" id="uploadCatInput" placeholder="Type parent/sub category..." autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterUploadCategories()" onclick="showUploadDropdown()">
+                        <input type="text" id="uploadCatInput" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterUploadCategories()" onclick="showUploadDropdown()">
                         <input type="hidden" name="category" id="uploadCatHidden" required>
                         
-                        <!-- Selected Categories Container (Pills) -->
                         <div id="selectedCatContainer" class="flex flex-wrap gap-1 mt-2"></div>
 
-                        <div id="uploadCatDropdown" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto p-1">
-                            <!-- Recent 4 Categories Section -->
+                        <div id="uploadCatDropdown" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto p-1">
                             <div id="recentCategoriesSection" class="border-b pb-1 mb-1">
                                 <div class="text-[10px] font-bold text-gray-400 px-2 uppercase">Recent Used:</div>
                                 <div id="recentCatList" class="flex flex-wrap gap-1 p-1"></div>
                             </div>
-                            <!-- All Categories List -->
-                            <div id="allCatList">
-                                <% categories.forEach(cat => { %>
-                                    <div onclick="toggleUploadCategory('<%= cat.name %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 category-item rounded"><%= cat.name %></div>
+                            <div id="allCatList" class="space-y-1">
+                                <% 
+                                   // Group categories by parent for interactive dropdown
+                                   let parentMap = {};
+                                   let standAlones = [];
+                                   categories.forEach(cat => {
+                                       if(cat.parentCategory) {
+                                           if(!parentMap[cat.parentCategory]) parentMap[cat.parentCategory] = [];
+                                           parentMap[cat.parentCategory].push(cat.name);
+                                       } else {
+                                           standAlones.push(cat.name);
+                                       }
+                                   });
+                                %>
+                                
+                                <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Parent Categories (Click to filter sub-cats)</div>
+                                <% Object.keys(parentMap).forEach(parent => { %>
+                                    <div onclick="selectParentForSearch('<%= parent %>')" class="p-2 hover:bg-indigo-100 cursor-pointer text-xs font-bold text-indigo-900 rounded parent-item flex justify-between items-center">
+                                        📁 <%= parent %> <span class="text-[10px] text-gray-500 font-normal">Click to view sub-cats ›</span>
+                                    </div>
+                                    <% parentMap[parent].forEach(sub => { %>
+                                        <div onclick="toggleUploadCategory('<%= sub %>')" data-parent="<%= parent %>" class="p-1.5 pl-6 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 sub-cat-item rounded hidden">
+                                            ↳ <%= sub %>
+                                        </div>
+                                    <% }) %>
                                 <% }) %>
+
+                                <% if(standAlones.length > 0) { %>
+                                    <div class="text-[10px] font-bold text-gray-400 px-2 uppercase mt-2 bg-gray-50 py-0.5">Other Categories</div>
+                                    <% standAlones.forEach(cat => { %>
+                                        <div onclick="toggleUploadCategory('<%= cat %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 category-item rounded"><%= cat %></div>
+                                    <% }) %>
+                                <% } %>
                             </div>
                         </div>
                     </div>
@@ -115,69 +141,81 @@
                 </form>
             </div>
 
-            <!-- Right Column: Manage Uploaded PNGs List Section (Latest 20 default) -->
-            <div class="bg-white p-6 rounded-xl shadow md:col-span-2 flex flex-col">
-                <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
-                    <h2 class="text-lg font-bold text-gray-800">Manage Uploaded PNGs <span class="text-xs text-gray-400 font-normal">(Showing latest or filtered)</span></h2>
-                    
-                    <form action="/admin" method="GET" class="flex gap-2 flex-wrap items-center">
-                        <input type="text" name="search" value="<%= searchAdmin || '' %>" placeholder="Search title/tags..." class="p-2 border rounded-lg text-sm outline-none">
+            <!-- Right Column: Manage Uploaded PNGs with Pagination (20 per page) -->
+            <div class="bg-white p-6 rounded-xl shadow md:col-span-2 flex flex-col justify-between">
+               <div>
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                        <h2 class="text-lg font-bold text-gray-800">Manage Uploaded PNGs <span class="text-xs text-gray-400 font-normal">(20 per page)</span></h2>
                         
-                        <div class="relative">
-                            <input type="text" id="filterCatInput" name="category" value="<%= typeof selectedCategory !== 'undefined' ? selectedCategory : '' %>" placeholder="Parent/Sub Category..." autocomplete="off" class="p-2 border rounded-lg text-sm outline-none bg-white">
-                        </div>
+                        <form action="/admin" method="GET" class="flex gap-2 flex-wrap items-center">
+                            <input type="text" name="search" value="<%= searchAdmin || '' %>" placeholder="Search title/tags..." class="p-2 border rounded-lg text-sm outline-none">
+                            <input type="text" name="category" value="<%= typeof selectedCategory !== 'undefined' ? selectedCategory : '' %>" placeholder="Category filter..." class="p-2 border rounded-lg text-sm outline-none bg-white">
+                            <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Search</button>
+                        </form>
+                    </div>
 
-                        <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Search</button>
-                    </form>
-                </div>
-
-                <div class="overflow-x-auto flex-grow">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-200 text-gray-700 text-sm">
-                                <th class="p-3">Preview</th>
-                                <th class="p-3">Title & Tags</th>
-                                <th class="p-3">Categories</th>
-                                <th class="p-3">Downloads</th>
-                                <th class="p-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 text-sm">
-                            <% if(pngs.length > 0) { %>
-                                <% pngs.forEach(png => { %>
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="p-3">
-                                            <img src="<%= png.imageUrl %>" class="h-10 w-10 object-contain bg-gray-100 rounded border p-1">
-                                        </td>
-                                        <td class="p-3 font-medium text-gray-800">
-                                            <%= png.title %>
-                                            <div class="text-xs text-blue-600 font-normal mt-0.5">Tags: <%= png.tags %></div>
-                                        </td>
-                                        <td class="p-3 text-gray-600"><%= png.category %></td>
-                                        <td class="p-3 text-blue-600 font-semibold"><%= png.downloads %></td>
-                                        <td class="p-3 space-x-2 flex items-center">
-                                            <a href="/admin/edit/<%= png._id %>" class="text-blue-600 hover:underline font-medium text-xs bg-blue-50 px-2 py-1 rounded">Edit</a>
-                                            <form action="/admin/delete/<%= png._id %>" method="POST" onsubmit="return confirm('Delete this PNG?');" class="inline">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 px-2 py-1 rounded">Delete</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                <% }) %>
-                            <% } else { %>
-                                <tr>
-                                    <td colspan="5" class="p-4 text-center text-gray-500">No PNGs found.</td>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-200 text-gray-700 text-sm">
+                                    <th class="p-3">Preview</th>
+                                    <th class="p-3">Title & Tags</th>
+                                    <th class="p-3">Categories</th>
+                                    <th class="p-3">Downloads</th>
+                                    <th class="p-3">Actions</th>
                                 </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 text-sm">
+                                <% if(pngs.length > 0) { %>
+                                    <% pngs.forEach(png => { %>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="p-3">
+                                                <img src="<%= png.imageUrl %>" class="h-10 w-10 object-contain bg-gray-100 rounded border p-1">
+                                            </td>
+                                            <td class="p-3 font-medium text-gray-800">
+                                                <%= png.title %>
+                                                <div class="text-xs text-blue-600 font-normal mt-0.5">Tags: <%= png.tags %></div>
+                                            </td>
+                                            <td class="p-3 text-gray-600"><%= png.category %></td>
+                                            <td class="p-3 text-blue-600 font-semibold"><%= png.downloads %></td>
+                                            <td class="p-3 space-x-2 flex items-center">
+                                                <a href="/admin/edit/<%= png._id %>" class="text-blue-600 hover:underline font-medium text-xs bg-blue-50 px-2 py-1 rounded">Edit</a>
+                                                <form action="/admin/delete/<%= png._id %>" method="POST" onsubmit="return confirm('Delete this PNG?');" class="inline">
+                                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 px-2 py-1 rounded">Delete</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="5" class="p-4 text-center text-gray-500">No PNGs found.</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+               </div>
+
+               <!-- Pagination Controls -->
+               <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+                    <div class="flex justify-between items-center mt-6 pt-4 border-t text-sm">
+                        <span class="text-gray-500">Page <%= currentPage %> of <%= totalPages %></span>
+                        <div class="flex gap-1">
+                            <% if (currentPage > 1) { %>
+                                <a href="/admin?page=<%= currentPage - 1 %>&search=<%= searchAdmin || '' %>&category=<%= selectedCategory || '' %>" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold">← Prev</a>
                             <% } %>
-                        </tbody>
-                    </table>
-                </div>
+                            <% if (currentPage < totalPages) { %>
+                                <a href="/admin?page=<%= currentPage + 1 %>&search=<%= searchAdmin || '' %>&category=<%= selectedCategory || '' %>" class="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold">Next →</a>
+                            <% } %>
+                        </div>
+                    </div>
+               <% } %>
             </div>
 
         </div>
     </main>
 
     <script>
-        // --- Multi-Category Selection & Recent Suggestions Logic ---
         let selectedCategoriesArray = [];
         let recentCategories = JSON.parse(localStorage.getItem('recentCats') || '[]');
 
@@ -203,25 +241,44 @@
             });
         }
 
+        // When parent is clicked, put it in search bar and reveal its sub-categories
+        function selectParentForSearch(parentName) {
+            let searchInput = document.getElementById('uploadCatInput');
+            searchInput.value = parentName;
+            
+            // Hide all sub categories first, then show only matching parent's sub categories
+            let subItems = document.querySelectorAll('.sub-cat-item');
+            subItems.forEach(item => {
+                if(item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            document.getElementById('uploadCatDropdown').classList.remove('hidden');
+        }
+
         function filterUploadCategories() {
             let input = document.getElementById('uploadCatInput').value.toLowerCase();
-            let items = document.querySelectorAll('.category-item');
+            let subItems = document.querySelectorAll('.sub-cat-item');
+            let parentItems = document.querySelectorAll('.parent-item');
+            let standAlones = document.querySelectorAll('.category-item');
             document.getElementById('uploadCatDropdown').classList.remove('hidden');
             
-            items.forEach(item => {
-                let text = item.textContent.toLowerCase();
-                if (text.includes(input)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
+            parentItems.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(input) ? "flex" : "none";
+            });
+            subItems.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(input) ? "block" : "none";
+            });
+            standAlones.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(input) ? "block" : "none";
             });
         }
 
         function toggleUploadCategory(name) {
             if (!selectedCategoriesArray.includes(name)) {
                 selectedCategoriesArray.push(name);
-                // Update recent list
                 recentCategories = [name, ...recentCategories.filter(c => c !== name)].slice(0, 4);
                 localStorage.setItem('recentCats', JSON.stringify(recentCategories));
             } else {
@@ -254,7 +311,7 @@
             }
         });
 
-        // --- Smart Comma-Separated Tag System ---
+        // Tags Logic
         const tagInput = document.getElementById('tagInput');
         const tagContainer = document.getElementById('tagContainer');
         const hiddenTags = document.getElementById('hiddenTags');
@@ -270,18 +327,14 @@
 
         tagInput.addEventListener('paste', function(e) {
             e.preventDefault();
-            let pasteData = (e.clipboardData || window.clipboardData).getData('text');
-            processTagsInput(pasteData);
+            processTagsInput((e.clipboardData || window.clipboardData).getData('text'));
             tagInput.value = '';
         });
 
         function processTagsInput(str) {
-            let parts = str.split(',');
-            parts.forEach(part => {
+            str.split(',').forEach(part => {
                 let val = part.trim().replace(/^#+/, '');
-                if (val && !tagsArray.includes(val)) {
-                    tagsArray.push(val);
-                }
+                if (val && !tagsArray.includes(val)) tagsArray.push(val);
             });
             renderTags();
         }
