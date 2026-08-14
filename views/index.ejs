@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="google-site-verification" content="8bc19ad1bc1f7993" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FreeTransPNG - Free HD Transparent PNG Marketplace</title>
     <link rel="icon" href="/logo.png" type="image/png">
@@ -40,7 +41,7 @@
                 </div>
             </a>
 
-            <!-- Clean Icon-Free Modern Search Bar -->
+            <!-- Search Bar -->
             <div class="relative w-full md:flex-1 max-w-md">
                 <form action="/" method="GET" autocomplete="off" class="relative flex items-center">
                     <input type="text" id="searchInput" name="search" value="<%= search %>" data-popular='<%- JSON.stringify(popularTags || ["Diya", "Logo", "Vector", "Ribbon", "Banner"]) %>' placeholder="Explore transparent PNGs..." class="w-full px-5 py-2.5 rounded-full text-gray-800 focus:outline-none shadow-inner text-sm bg-white/95 font-medium">
@@ -70,7 +71,7 @@
         </div>
     </header>
 
-    <!-- Main Content with Mid-Page Twists -->
+    <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8 space-y-10">
         
         <div class="flex justify-between items-center border-b pb-2">
@@ -129,7 +130,7 @@
 
     </main>
 
-    <!-- Clean Animated Placeholder & Live Suggestions Script -->
+    <!-- Script -->
     <script>
         const searchInput = document.getElementById('searchInput');
         
@@ -174,7 +175,6 @@
             setTimeout(typePlaceholder, 1000);
         }
 
-        // Live Suggestions Autocomplete
         const suggestionsBox = document.getElementById('suggestionsBox');
 
         searchInput.addEventListener('input', async function() {
