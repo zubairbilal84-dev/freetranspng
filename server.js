@@ -46,15 +46,37 @@ const pngSchema = new mongoose.Schema({
 });
 const Png = mongoose.model('Png', pngSchema);
 
-// Visitor Analytics Schema
+// Visitor Analytics Schema with Country Support
 const visitorSchema = new mongoose.Schema({
+    ip: { type: String, default: 'Unknown' },
+    country: { type: String, default: 'Unknown' },
     timestamp: { type: Date, default: Date.now }
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
+// Middleware to track website visits with GeoIP
 app.use(async (req, res, next) => {
     if (!req.url.startsWith('/uploads') && !req.url.startsWith('/admin') && !req.url.startsWith('/api')) {
-        await Visitor.create({});
+        try {
+            let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+            if (ip.includes(',')) ip = ip.split(',')[0].trim();
+            if (ip.startsWith('::ffff:')) ip = ip.replace('::ffff:', '');
+
+            let country = 'Unknown';
+            if (ip && ip !== '127.0.0.1' && ip !== 'localhost') {
+                const response = await fetch(`https://ipapi.co/${ip}/country_name/`);
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && !text.includes('Undefined')) country = text.trim();
+                }
+            } else {
+                country = 'Localhost';
+            }
+
+            await Visitor.create({ ip, country });
+        } catch (err) {
+            console.error('Visitor tracking error:', err);
+        }
     }
     next();
 });
@@ -218,6 +240,38 @@ app.get('/admin', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
+// Detailed Visitors Route for Clickable Cards
+app.get('/admin/visitors/:filter', requireAdmin, async (req, res) => {
+    try {
+        const filter = req.params.filter;
+        const now = new Date();
+        let query = {};
+        let title = '';
+
+        if (filter === 'today') {
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            query = { timestamp: { $gte: startOfDay } };
+            title = "Today's Visitors List";
+        } else if (filter === 'weekly') {
+            const startOfWeek = new Date();
+            startOfWeek.setDate(now.getDate() - 7);
+            query = { timestamp: { $gte: startOfWeek } };
+            title = "Weekly Visitors List (Last 7 Days)";
+        } else if (filter === 'monthly') {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            query = { timestamp: { $gte: startOfMonth } };
+            title = "Monthly Visitors List (This Month)";
+        } else {
+            return res.redirect('/admin');
+        }
+
+        const visitors = await Visitor.find(query).sort({ timestamp: -1 });
+        res.render('visitors', { visitors, title });
+    } catch (err) {
+        res.status(500).send("Server Error");
+    }
+});
+
 app.get('/admin/categories', requireAdmin, async (req, res) => {
     try {
         const searchCat = req.query.search || '';
@@ -244,7 +298,6 @@ app.post('/admin/category/delete/:id', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Error deleting category"); }
 });
 
-// Upload Route with Cloudinary Integration
 app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
@@ -278,7 +331,6 @@ app.get('/admin/edit/:id', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Update Route with Cloudinary Integration
 app.post('/admin/update/:id', requireAdmin, upload.single('pngImage'), async (req, res) => {
     try {
         const { title, category, tags } = req.body;
