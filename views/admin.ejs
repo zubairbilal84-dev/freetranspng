@@ -36,7 +36,7 @@
             </div>
         </div>
 
-        <!-- 📥 Download Analytics Section -->
+        <!-- Analytics Sections -->
         <div class="bg-white p-6 rounded-xl shadow">
             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📊</span> Download Performance Analytics</h2>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -64,37 +64,9 @@
             </div>
         </div>
 
-        <!-- 📊 Traffic Analytics Section -->
-        <div class="bg-white p-6 rounded-xl shadow">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📈</span> Website Traffic Overview</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <a href="/admin/visitors/today" class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-center justify-between hover:bg-indigo-100 transition cursor-pointer">
-                    <div>
-                        <p class="text-xs text-indigo-600 font-bold uppercase tracking-wider">Today's Visits</p>
-                        <h3 class="text-2xl font-extrabold text-indigo-900 mt-1"><%= typeof dailyVisits !== 'undefined' ? dailyVisits : 0 %></h3>
-                    </div>
-                    <div class="bg-indigo-100 p-3 rounded-lg text-indigo-600 text-lg">📅</div>
-                </a>
-                <a href="/admin/visitors/weekly" class="bg-purple-50 border border-purple-100 p-4 rounded-xl flex items-center justify-between hover:bg-purple-100 transition cursor-pointer">
-                    <div>
-                        <p class="text-xs text-purple-600 font-bold uppercase tracking-wider">Weekly Visits</p>
-                        <h3 class="text-2xl font-extrabold text-purple-900 mt-1"><%= typeof weeklyVisits !== 'undefined' ? weeklyVisits : 0 %></h3>
-                    </div>
-                    <div class="bg-purple-100 p-3 rounded-lg text-purple-600 text-lg">📊</div>
-                </a>
-                <a href="/admin/visitors/monthly" class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between hover:bg-emerald-100 transition cursor-pointer">
-                    <div>
-                        <p class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Monthly Visits</p>
-                        <h3 class="text-2xl font-extrabold text-emerald-900 mt-1"><%= typeof monthlyVisits !== 'undefined' ? monthlyVisits : 0 %></h3>
-                    </div>
-                    <div class="bg-emerald-100 p-3 rounded-lg text-emerald-600 text-lg">🌐</div>
-                </a>
-            </div>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- Left Column: Upload Forms -->
+            <!-- Left Column: All Upload Forms -->
             <div class="space-y-6">
                 
                 <!-- 1. Single Upload PNG Form -->
@@ -131,7 +103,6 @@
                                            }
                                        });
                                     %>
-                                    
                                     <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Parent Categories</div>
                                     <% Object.keys(parentMap).forEach(parent => { %>
                                         <div onclick="selectParentForSearch('<%= parent %>')" class="p-2 hover:bg-indigo-100 cursor-pointer text-xs font-bold text-indigo-900 rounded parent-item flex justify-between items-center">
@@ -143,7 +114,6 @@
                                             </div>
                                         <% }) %>
                                     <% }) %>
-
                                     <% if(standAlones.length > 0) { %>
                                         <div class="text-[10px] font-bold text-gray-400 px-2 uppercase mt-2 bg-gray-50 py-0.5">Other Categories</div>
                                         <% standAlones.forEach(cat => { %>
@@ -169,52 +139,32 @@
                     </form>
                 </div>
 
-                <!-- 2. Common Batch Bulk Upload Section (Auto-distributed titles, common category & smart tags) -->
+                <!-- 2. Common Batch Bulk Upload Section -->
                 <div class="bg-white p-6 rounded-xl shadow h-fit border-2 border-purple-300">
                     <h2 class="text-lg font-bold text-gray-800 mb-1">⚡ Common Batch Bulk Upload</h2>
-                    <p class="text-xs text-gray-500 mb-4">Bohat saare titles paste karein (period/comma/newline se alag hue), common category aur tags select karein, aur multiple PNGs select karke ek sath upload karein.</p>
+                    <p class="text-xs text-gray-500 mb-4">Titles ki list paste karein, common category aur tags select karein, aur bohot saari PNGs ek sath select karke upload karein.</p>
                     
                     <form action="/admin/bulk-upload" method="POST" enctype="multipart/form-data" class="space-y-4">
-                        
-                        <!-- Titles List Input -->
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Titles List (Paste titles separated by comma, period or newline)</label>
-                            <textarea name="bulkTitles" rows="4" required placeholder="Title one. Title two, Title three..." class="w-full p-2.5 border rounded-lg text-xs bg-white outline-none" onkeydown="handleBatchTitleKey(event)" onpaste="handleBatchTitlePaste(event)"></textarea>
-                            <p class="text-[10px] text-gray-400 mt-1">Har PNG ko sequentially ek-ek title mil jayega.</p>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Titles List (Comma/Newline/Period separated)</label>
+                            <textarea name="bulkTitles" rows="3" required placeholder="Title 1. Title 2, Title 3..." class="w-full p-2.5 border rounded-lg text-xs bg-white outline-none"></textarea>
                         </div>
 
-                        <!-- Common Category Selector (Parent/Sub System) -->
                         <div class="relative">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Common Category (Applied to all)</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Common Category</label>
                             <input type="text" id="batchCatInput" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2.5 border rounded-lg text-xs outline-none bg-white" oninput="filterBatchCategories()" onclick="showBatchDropdown()">
                             <input type="hidden" name="commonCategory" id="batchCatHidden" required>
-                            
-                            <div id="batchSelectedCatContainer" class="flex flex-wrap gap-1 mt-2"></div>
-
+                            <div id="batchSelectedCatContainer" class="flex flex-wrap gap-1 mt-1.5"></div>
                             <div id="batchCatDropdown" class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto p-1 text-xs">
-                                <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Parent Categories (Click to filter sub-cats)</div>
                                 <div id="batchCatListContent">
-                                    <% 
-                                       let batchParentMap = {};
-                                       let batchStandAlones = [];
-                                       categories.forEach(cat => {
-                                           if(cat.parentCategory) {
-                                               if(!batchParentMap[cat.parentCategory]) batchParentMap[cat.parentCategory] = [];
-                                               batchParentMap[cat.parentCategory].push(cat.name);
-                                           } else {
-                                               batchStandAlones.push(cat.name);
-                                           }
-                                       });
-                                    %>
-                                    <% Object.keys(batchParentMap).forEach(parent => { %>
+                                    <% Object.keys(parentMap).forEach(parent => { %>
                                         <div onclick="selectBatchParentForSearch('<%= parent %>')" class="p-1.5 hover:bg-indigo-100 cursor-pointer font-bold text-indigo-900 rounded batch-parent-item flex justify-between items-center">📁 <%= parent %> <span class="text-[9px] text-gray-500">View sub-cats ›</span></div>
-                                        <% batchParentMap[parent].forEach(sub => { %>
+                                        <% parentMap[parent].forEach(sub => { %>
                                             <div onclick="toggleBatchCategory('<%= sub %>')" data-parent="<%= parent %>" class="p-1 pl-5 hover:bg-blue-50 cursor-pointer text-gray-700 rounded batch-subcat-item hidden">↳ <%= sub %></div>
                                         <% }) %>
                                     <% }) %>
-                                    <% if(batchStandAlones.length > 0) { %>
-                                        <div class="text-[9px] font-bold text-gray-400 px-2 uppercase mt-1 bg-gray-50 py-0.5">Other Categories</div>
-                                        <% batchStandAlones.forEach(cat => { %>
+                                    <% if(standAlones.length > 0) { %>
+                                        <% standAlones.forEach(cat => { %>
                                             <div onclick="toggleBatchCategory('<%= cat %>')" class="p-1.5 hover:bg-blue-50 cursor-pointer text-gray-700 rounded batch-category-item"><%= cat %></div>
                                         <% }) %>
                                     <% } %>
@@ -222,29 +172,45 @@
                             </div>
                         </div>
 
-                        <!-- Common Smart Tags (Enter / Comma Paste) -->
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Common Tags (Comma/Enter separated)</label>
-                            <input type="text" id="batchTagInput" placeholder="Type or paste tags with commas" class="w-full p-2.5 border rounded-lg text-xs outline-none mb-1" onkeydown="handleBatchTagKey(event)" onpaste="handleBatchTagPaste(event)">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Common Tags (Comma separated)</label>
+                            <input type="text" id="batchTagInput" placeholder="tag1, tag2, tag3" class="w-full p-2.5 border rounded-lg text-xs outline-none mb-1" onkeydown="handleBatchTagKey(event)" onpaste="handleBatchTagPaste(event)">
                             <div id="batchTagContainer" class="flex flex-wrap gap-1 mb-1"></div>
                             <input type="hidden" name="commonTags" id="batchHiddenTags" required>
                         </div>
 
-                        <!-- Multiple Files Selection -->
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Select Multiple PNG Files</label>
                             <input type="file" name="pngImages" accept="image/png" multiple required class="w-full p-2 border rounded-lg bg-gray-50 text-xs">
                         </div>
 
-                        <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 transition text-sm">
-                            🚀 Upload All Batch PNGs
+                        <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-lg font-bold hover:bg-purple-700 transition text-sm">
+                            🚀 Upload Batch PNGs
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 3. Multi-PNG Custom Builder Section -->
+                <div class="bg-white p-6 rounded-xl shadow h-fit border-2 border-indigo-200">
+                    <h2 class="text-lg font-bold text-gray-800 mb-1">⚡ Multi-PNG Custom Builder</h2>
+                    <p class="text-xs text-gray-500 mb-4">Har row me alag title, parent/sub category, aur tags set karke multiple rows add karein.</p>
+                    
+                    <form action="/admin/bulk-upload" method="POST" enctype="multipart/form-data" class="space-y-4">
+                        <div id="dynamicRowsContainer" class="space-y-4"></div>
+
+                        <button type="button" onclick="addDynamicRow()" class="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-2 rounded-lg font-bold hover:bg-indigo-100 transition text-xs">
+                            + Add Another Custom PNG Row
+                        </button>
+
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold hover:bg-indigo-700 transition text-sm">
+                            🚀 Upload Custom Multi-Row PNGs
                         </button>
                     </form>
                 </div>
 
             </div>
 
-            <!-- Right Column: Manage Uploaded PNGs with Pagination (20 per page) -->
+            <!-- Right Column: Manage Uploaded PNGs with Pagination -->
             <div class="bg-white p-6 rounded-xl shadow md:col-span-2 flex flex-col justify-between">
                <div>
                     <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
@@ -319,7 +285,7 @@
     </main>
 
     <script>
-        // --- Single Upload Category Logic ---
+        // --- Single Upload Logic ---
         let selectedCategoriesArray = [];
         let recentCategories = JSON.parse(localStorage.getItem('recentCats') || '[]');
 
@@ -348,34 +314,19 @@
         function selectParentForSearch(parentName) {
             let searchInput = document.getElementById('uploadCatInput');
             searchInput.value = parentName;
-            
             let subItems = document.querySelectorAll('.sub-cat-item');
             subItems.forEach(item => {
-                if(item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
+                item.style.display = (item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) ? 'block' : 'none';
             });
             document.getElementById('uploadCatDropdown').classList.remove('hidden');
         }
 
         function filterUploadCategories() {
             let input = document.getElementById('uploadCatInput').value.toLowerCase();
-            let subItems = document.querySelectorAll('.sub-cat-item');
-            let parentItems = document.querySelectorAll('.parent-item');
-            let standAlones = document.querySelectorAll('.category-item');
             document.getElementById('uploadCatDropdown').classList.remove('hidden');
-            
-            parentItems.forEach(item => {
-                item.style.display = item.textContent.toLowerCase().includes(input) ? "flex" : "none";
-            });
-            subItems.forEach(item => {
-                item.style.display = item.textContent.toLowerCase().includes(input) ? "block" : "none";
-            });
-            standAlones.forEach(item => {
-                item.style.display = item.textContent.toLowerCase().includes(input) ? "block" : "none";
-            });
+            document.querySelectorAll('.parent-item').forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "flex" : "none");
+            document.querySelectorAll('.sub-cat-item').forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none");
+            document.querySelectorAll('.category-item').forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none");
         }
 
         function toggleUploadCategory(name) {
@@ -407,7 +358,6 @@
             renderSelectedCategories();
         }
 
-        // Single Tags Logic
         const tagInput = document.getElementById('tagInput');
         const tagContainer = document.getElementById('tagContainer');
         const hiddenTags = document.getElementById('hiddenTags');
@@ -420,7 +370,6 @@
                 tagInput.value = '';
             }
         });
-
         tagInput.addEventListener('paste', function(e) {
             e.preventDefault();
             processTagsInput((e.clipboardData || window.clipboardData).getData('text'));
@@ -451,53 +400,29 @@
             renderTags();
         }
 
-        // --- ⚡ Common Batch Bulk Upload JS Logic ---
+        // --- Common Batch Bulk Upload JS Logic ---
         let batchCategoriesArray = [];
-
-        function showBatchDropdown() {
-            document.getElementById('batchCatDropdown').classList.remove('hidden');
-        }
-
+        function showBatchDropdown() { document.getElementById('batchCatDropdown').classList.remove('hidden'); }
         function selectBatchParentForSearch(parentName) {
-            let searchInput = document.getElementById('batchCatInput');
-            searchInput.value = parentName;
-            
-            let subItems = document.querySelectorAll('.batch-subcat-item');
-            subItems.forEach(item => {
-                if(item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
+            document.getElementById('batchCatInput').value = parentName;
+            document.querySelectorAll('.batch-subcat-item').forEach(item => {
+                item.style.display = (item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) ? 'block' : 'none';
             });
             document.getElementById('batchCatDropdown').classList.remove('hidden');
         }
-
         function filterBatchCategories() {
             let input = document.getElementById('batchCatInput').value.toLowerCase();
             document.getElementById('batchCatDropdown').classList.remove('hidden');
-            
-            document.querySelectorAll('.batch-parent-item').forEach(i => {
-                i.style.display = i.textContent.toLowerCase().includes(input) ? "flex" : "none";
-            });
-            document.querySelectorAll('.batch-subcat-item').forEach(i => {
-                i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none";
-            });
-            document.querySelectorAll('.batch-category-item').forEach(i => {
-                i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none";
-            });
+            document.querySelectorAll('.batch-parent-item').forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "flex" : "none");
+            document.querySelectorAll('.batch-subcat-item').forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none");
+            document.querySelectorAll('.batch-category-item').forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none");
         }
-
         function toggleBatchCategory(name) {
-            if (!batchCategoriesArray.includes(name)) {
-                batchCategoriesArray.push(name);
-            } else {
-                batchCategoriesArray = batchCategoriesArray.filter(c => c !== name);
-            }
+            if (!batchCategoriesArray.includes(name)) batchCategoriesArray.push(name);
+            else batchCategoriesArray = batchCategoriesArray.filter(c => c !== name);
             renderBatchCategories();
             document.getElementById('batchCatInput').value = '';
         }
-
         function renderBatchCategories() {
             let container = document.getElementById('batchSelectedCatContainer');
             container.innerHTML = '';
@@ -509,13 +434,8 @@
             });
             document.getElementById('batchCatHidden').value = batchCategoriesArray.join(', ');
         }
+        function removeBatchCategory(index) { batchCategoriesArray.splice(index, 1); renderBatchCategories(); }
 
-        function removeBatchCategory(index) {
-            batchCategoriesArray.splice(index, 1);
-            renderBatchCategories();
-        }
-
-        // Batch Tags Logic
         const batchTagInput = document.getElementById('batchTagInput');
         const batchTagContainer = document.getElementById('batchTagContainer');
         const batchHiddenTags = document.getElementById('batchHiddenTags');
@@ -528,7 +448,6 @@
                 batchTagInput.value = '';
             }
         });
-
         batchTagInput.addEventListener('paste', function(e) {
             e.preventDefault();
             processBatchTags((e.clipboardData || window.clipboardData).getData('text'));
@@ -542,7 +461,6 @@
             });
             renderBatchTags();
         }
-
         function renderBatchTags() {
             batchTagContainer.innerHTML = '';
             batchTagsArray.forEach((tag, index) => {
@@ -553,13 +471,150 @@
             });
             batchHiddenTags.value = batchTagsArray.join(', ');
         }
+        function removeBatchTag(index) { batchTagsArray.splice(index, 1); renderBatchTags(); }
 
-        function removeBatchTag(index) {
-            batchTagsArray.splice(index, 1);
-            renderBatchTags();
+        // --- Multi-PNG Custom Builder Logic ---
+        let rowIndex = 0;
+        const allCategoriesList = JSON.parse('<%- JSON.stringify(categories) %>');
+
+        function addDynamicRow() {
+            let container = document.getElementById('dynamicRowsContainer');
+            let rowId = rowIndex++;
+            
+            let rowDiv = document.createElement('div');
+            rowDiv.className = "p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3 relative row-item";
+            rowDiv.setAttribute('data-row-id', rowId);
+            
+            rowDiv.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-indigo-700">Custom PNG Entry #${rowId + 1}</span>
+                    <button type="button" onclick="this.closest('div.row-item').remove()" class="text-red-500 text-xs font-bold hover:underline">Remove ✕</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Title</label>
+                    <input type="text" name="titles" required placeholder="PNG Title" class="w-full p-2 border rounded text-xs bg-white outline-none">
+                </div>
+                <div class="relative">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Categories</label>
+                    <input type="text" id="rowCatInput_${rowId}" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2 border rounded text-xs bg-white outline-none" oninput="filterRowCategories(${rowId})" onclick="showRowDropdown(${rowId})">
+                    <input type="hidden" name="categories" id="rowCatHidden_${rowId}" required>
+                    <div id="rowSelectedCatContainer_${rowId}" class="flex flex-wrap gap-1 mt-1"></div>
+                    <div id="rowCatDropdown_${rowId}" class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto p-1 text-xs">
+                        <div id="rowCatList_${rowId}">${generateRowCategoriesHtml(rowId)}</div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tags (Comma/Enter)</label>
+                    <input type="text" id="rowTagInput_${rowId}" placeholder="tag1, tag2..." class="w-full p-2 border rounded text-xs bg-white outline-none mb-1" onkeydown="handleRowTagKey(event, ${rowId})" onpaste="handleRowTagPaste(event, ${rowId})">
+                    <div id="rowTagContainer_${rowId}" class="flex flex-wrap gap-1 mb-1"></div>
+                    <input type="hidden" name="tags" id="rowHiddenTags_${rowId}" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">PNG File</label>
+                    <input type="file" name="pngImages${rowId}" accept="image/png" required class="w-full p-1 border rounded bg-white text-xs">
+                </div>
+            `;
+            container.appendChild(rowDiv);
+            window[`rowCats_${rowId}`] = [];
+            window[`rowTags_${rowId}`] = [];
         }
 
-        // Global click listener to close dropdowns
+        function generateRowCategoriesHtml(rowId) {
+            let parentMap = {};
+            let standAlones = [];
+            allCategoriesList.forEach(cat => {
+                if(cat.parentCategory) {
+                    if(!parentMap[cat.parentCategory]) parentMap[cat.parentCategory] = [];
+                    parentMap[cat.parentCategory].push(cat.name);
+                } else {
+                    standAlones.push(cat.name);
+                }
+            });
+            let html = '';
+            Object.keys(parentMap).forEach(parent => {
+                html += `<div onclick="selectRowParentForSearch(${rowId}, '${parent.replace(/'/g, "\\'")}')" class="p-1 hover:bg-indigo-100 cursor-pointer font-bold text-indigo-900 rounded row-parent-${rowId} flex justify-between items-center">📁 ${parent} <span class="text-[8px]">›</span></div>`;
+                parentMap[parent].forEach(sub => {
+                    html += `<div onclick="toggleRowCategory(${rowId}, '${sub.replace(/'/g, "\\'")}')" data-parent="${parent}" class="p-1 pl-4 hover:bg-blue-50 cursor-pointer text-gray-700 rounded row-subcat-${rowId} hidden">↳ ${sub}</div>`;
+                });
+            });
+            if(standAlones.length > 0) {
+                standAlones.forEach(cat => {
+                    html += `<div onclick="toggleRowCategory(${rowId}, '${cat.replace(/'/g, "\\'")}')" class="p-1 hover:bg-blue-50 cursor-pointer text-gray-700 rounded row-cat-${rowId}">${cat}</div>`;
+                });
+            }
+            return html;
+        }
+
+        function showRowDropdown(rowId) { document.getElementById(`rowCatDropdown_${rowId}`).classList.remove('hidden'); }
+        function selectRowParentForSearch(rowId, parentName) {
+            document.getElementById(`rowCatInput_${rowId}`).value = parentName;
+            document.querySelectorAll(`.row-subcat-${rowId}`).forEach(item => {
+                item.style.display = (item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) ? 'block' : 'none';
+            });
+            document.getElementById(`rowCatDropdown_${rowId}`).classList.remove('hidden');
+        }
+        function filterRowCategories(rowId) {
+            let input = document.getElementById(`rowCatInput_${rowId}`).value.toLowerCase();
+            document.getElementById(`rowCatDropdown_${rowId}`).classList.remove('hidden');
+            document.querySelectorAll(`.row-parent-${rowId}`).forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "flex" : "none");
+            document.querySelectorAll(`.row-subcat-${rowId}`).forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none");
+            document.querySelectorAll(`.row-cat-${rowId}`).forEach(i => i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none");
+        }
+        function toggleRowCategory(rowId, name) {
+            let arr = window[`rowCats_${rowId}`];
+            if (!arr.includes(name)) arr.push(name);
+            else window[`rowCats_${rowId}`] = arr.filter(c => c !== name);
+            renderRowCategories(rowId);
+            document.getElementById(`rowCatInput_${rowId}`).value = '';
+        }
+        function renderRowCategories(rowId) {
+            let container = document.getElementById(`rowSelectedCatContainer_${rowId}`);
+            let arr = window[`rowCats_${rowId}`];
+            container.innerHTML = '';
+            arr.forEach((cat, idx) => {
+                let span = document.createElement('span');
+                span.className = "bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-medium";
+                span.innerHTML = `${cat} <button type="button" onclick="removeRowCategory(${rowId}, ${idx})" class="text-red-500 font-bold ml-1">×</button>`;
+                container.appendChild(span);
+            });
+            document.getElementById(`rowCatHidden_${rowId}`).value = arr.join(', ');
+        }
+        function removeRowCategory(rowId, idx) { window[`rowCats_${rowId}`].splice(idx, 1); renderRowCategories(rowId); }
+
+        function handleRowTagKey(e, rowId) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                processRowTags(rowId, document.getElementById(`rowTagInput_${rowId}`).value);
+                document.getElementById(`rowTagInput_${rowId}`).value = '';
+            }
+        }
+        function handleRowTagPaste(e, rowId) {
+            e.preventDefault();
+            processRowTags(rowId, (e.clipboardData || window.clipboardData).getData('text'));
+            document.getElementById(`rowTagInput_${rowId}`).value = '';
+        }
+        function processRowTags(rowId, str) {
+            let arr = window[`rowTags_${rowId}`];
+            str.split(',').forEach(part => {
+                let val = part.trim().replace(/^#+/, '');
+                if (val && !arr.includes(val)) arr.push(val);
+            });
+            renderRowTags(rowId);
+        }
+        function renderRowTags(rowId) {
+            let container = document.getElementById(`rowTagContainer_${rowId}`);
+            let arr = window[`rowTags_${rowId}`];
+            container.innerHTML = '';
+            arr.forEach((tag, idx) => {
+                let span = document.createElement('span');
+                span.className = "bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-medium";
+                span.innerHTML = `${tag} <button type="button" onclick="removeRowTag(${rowId}, ${idx})" class="text-red-500 font-bold ml-1">×</button>`;
+                container.appendChild(span);
+            });
+            document.getElementById(`rowHiddenTags_${rowId}`).value = arr.join(', ');
+        }
+        function removeRowTag(rowId, idx) { window[`rowTags_${rowId}`].splice(idx, 1); renderRowTags(rowId); }
+
         window.addEventListener('click', function(e) {
             if (!document.getElementById('uploadCatInput').contains(e.target) && !document.getElementById('uploadCatDropdown').contains(e.target)) {
                 document.getElementById('uploadCatDropdown').classList.add('hidden');
@@ -567,7 +622,14 @@
             if (!document.getElementById('batchCatInput').contains(e.target) && !document.getElementById('batchCatDropdown').contains(e.target)) {
                 document.getElementById('batchCatDropdown').classList.add('hidden');
             }
+            document.querySelectorAll("[id^='rowCatDropdown_']").forEach(drop => {
+                let rowId = drop.id.split('_')[1];
+                let input = document.getElementById(`rowCatInput_${rowId}`);
+                if (input && !input.contains(e.target) && !drop.contains(e.target)) drop.classList.add('hidden');
+            });
         });
+
+        window.addEventListener('DOMContentLoaded', () => { addDynamicRow(); });
     </script>
 </body>
 </html>

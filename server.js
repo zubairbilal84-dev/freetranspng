@@ -409,51 +409,77 @@ app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, r
 // Dynamic Multi-Row Bulk Upload Route in server.js
 // Bulk Upload Route handling multiple titles, common category, common tags, and multiple images
 // Common Batch Bulk Upload Route in server.js
-app.post('/admin/bulk-upload', requireAdmin, upload.array('pngImages', 50), async (req, res) => {
+// Combined Bulk Upload Route in server.js
+app.post('/admin/bulk-upload', requireAdmin, upload.any(), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).send("No files uploaded!");
         }
 
-        const { commonCategory, commonTags, bulkTitles } = req.body;
-        
-        // Split titles by newline, comma, or period based on user preference
-        let titlesArray = [];
-        if (bulkTitles) {
-            titlesArray = bulkTitles.split(/\r?\n|,|\./).map(t => t.trim()).filter(Boolean);
-        }
+        const { commonCategory, commonTags, bulkTitles, titles, categories, tags } = req.body;
 
-        for (let i = 0; i < req.files.length; i++) {
-            let file = req.files[i];
-            
-            // Assign title from the list sequentially, or fallback to file name if list ends
-            let title = titlesArray[i] || file.originalname.substring(0, file.originalname.lastIndexOf('.')) || file.originalname;
-            let category = commonCategory || 'General';
-            let tags = commonTags || '';
+        // Check if it's Custom Multi-Row Builder or Common Batch Upload
+        if (titles || categories) {
+            // --- Custom Multi-Row Builder Logic ---
+            let titlesArray = titles || [];
+            let categoriesArray = categories || [];
+            let tagsArray = tags || [];
 
-            await new Promise((resolve, reject) => {
-                let uploadStream = cloudinary.uploader.upload_stream(
-                    { folder: "freetranspng_uploads" },
-                    async (error, result) => {
-                        if (error) return reject(error);
-                        
-                        await Png.create({ 
-                            title: title, 
-                            category: category, 
-                            tags: tags, 
-                            imageUrl: result.secure_url 
-                        });
-                        resolve();
-                    }
-                );
-                uploadStream.end(file.buffer);
-            });
+            if (!Array.isArray(titlesArray)) titlesArray = [titlesArray];
+            if (!Array.isArray(categoriesArray)) categoriesArray = [categoriesArray];
+            if (!Array.isArray(tagsArray)) tagsArray = [tagsArray];
+
+            for (let file of req.files) {
+                if (file.fieldname.startsWith('pngImages')) {
+                    let index = file.fieldname.replace('pngImages', '');
+                    let title = titlesArray[index] || file.originalname.substring(0, file.originalname.lastIndexOf('.')) || file.originalname;
+                    let category = categoriesArray[index] || 'General';
+                    let tag = tagsArray[index] || '';
+
+                    await new Promise((resolve, reject) => {
+                        let uploadStream = cloudinary.uploader.upload_stream(
+                            { folder: "freetranspng_uploads" },
+                            async (error, result) => {
+                                if (error) return reject(error);
+                                await Png.create({ title, category, tags: tag, imageUrl: result.secure_url });
+                                resolve();
+                            }
+                        );
+                        uploadStream.end(file.buffer);
+                    });
+                }
+            }
+        } else {
+            // --- Common Batch Bulk Upload Logic ---
+            let titlesArray = [];
+            if (bulkTitles) {
+                titlesArray = bulkTitles.split(/\r?\n|,|\./).map(t => t.trim()).filter(Boolean);
+            }
+
+            for (let i = 0; i < req.files.length; i++) {
+                let file = req.files[i];
+                let title = titlesArray[i] || file.originalname.substring(0, file.originalname.lastIndexOf('.')) || file.originalname;
+                let category = commonCategory || 'General';
+                let tag = commonTags || '';
+
+                await new Promise((resolve, reject) => {
+                    let uploadStream = cloudinary.uploader.upload_stream(
+                        { folder: "freetranspng_uploads" },
+                        async (error, result) => {
+                            if (error) return reject(error);
+                            await Png.create({ title, category, tags: tag, imageUrl: result.secure_url });
+                            resolve();
+                        }
+                    );
+                    uploadStream.end(file.buffer);
+                });
+            }
         }
 
         res.redirect('/admin');
     } catch (err) { 
         console.error(err);
-        res.status(500).send("Error uploading batch bulk files"); 
+        res.status(500).send("Error uploading bulk files"); 
     }
 });
 
