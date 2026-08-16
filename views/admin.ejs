@@ -9,12 +9,12 @@
 <body class="bg-gray-100 font-sans">
     
     <header class="bg-gray-900 text-white p-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow">
-    <h1 class="text-xl font-bold text-center sm:text-left">FreeTransPNG Admin Panel</h1>
-    <div class="flex flex-wrap justify-center gap-2">
-        <a href="/admin/categories" class="bg-purple-600 px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-purple-700 font-medium">Manage Categories 📁</a>
-        <a href="/" target="_blank" class="bg-blue-600 px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-blue-700 font-medium">Visit Website ↗</a>
-    </div>
-</header>
+        <h1 class="text-xl font-bold text-center sm:text-left">FreeTransPNG Admin Panel</h1>
+        <div class="flex flex-wrap justify-center gap-2">
+            <a href="/admin/categories" class="bg-purple-600 px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-purple-700 font-medium">Manage Categories 📁</a>
+            <a href="/" target="_blank" class="bg-blue-600 px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-blue-700 font-medium">Visit Website ↗</a>
+        </div>
+    </header>
 
     <main class="container mx-auto p-6 space-y-6">
         
@@ -29,16 +29,44 @@
             </div>
             <div class="bg-white p-5 rounded-xl shadow flex items-center justify-between">
                 <div>
-                    <p class="text-gray-500 text-sm">Total Downloads</p>
+                    <p class="text-gray-500 text-sm">Total Downloads (All-Time)</p>
                     <h3 class="text-2xl font-bold text-gray-800"><%= sumDownloads %></h3>
                 </div>
                 <div class="bg-green-100 p-3 rounded-lg text-green-600 font-bold">📥</div>
             </div>
         </div>
 
+        <!-- 📥 Download Analytics Section (Daily, Weekly, Monthly) -->
+        <div class="bg-white p-6 rounded-xl shadow">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📊</span> Download Performance Analytics</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-green-50 border border-green-100 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-green-600 font-bold uppercase tracking-wider">Today's Downloads</p>
+                        <h3 class="text-2xl font-extrabold text-green-900 mt-1"><%= typeof dailyDownloads !== 'undefined' ? dailyDownloads : 0 %></h3>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-lg text-green-600 text-lg">📈</div>
+                </div>
+                <div class="bg-teal-50 border border-teal-100 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-teal-600 font-bold uppercase tracking-wider">Weekly Downloads</p>
+                        <h3 class="text-2xl font-extrabold text-teal-900 mt-1"><%= typeof weeklyDownloads !== 'undefined' ? weeklyDownloads : 0 %></h3>
+                    </div>
+                    <div class="bg-teal-100 p-3 rounded-lg text-teal-600 text-lg">📉</div>
+                </div>
+                <div class="bg-cyan-50 border border-cyan-100 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-cyan-600 font-bold uppercase tracking-wider">Monthly Downloads</p>
+                        <h3 class="text-2xl font-extrabold text-cyan-900 mt-1"><%= typeof monthlyDownloads !== 'undefined' ? monthlyDownloads : 0 %></h3>
+                    </div>
+                    <div class="bg-cyan-100 p-3 rounded-lg text-cyan-600 text-lg">📊</div>
+                </div>
+            </div>
+        </div>
+
         <!-- 📊 Traffic Analytics Section -->
         <div class="bg-white p-6 rounded-xl shadow">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📈</span> Website Traffic Overview</h2>
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📈</span> Website Traffic Overview (Click cards for details)</h2>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <a href="/admin/visitors/today" class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-center justify-between hover:bg-indigo-100 transition cursor-pointer">
                     <div>
@@ -90,7 +118,6 @@
                             </div>
                             <div id="allCatList" class="space-y-1">
                                 <% 
-                                   // Group categories by parent for interactive dropdown
                                    let parentMap = {};
                                    let standAlones = [];
                                    categories.forEach(cat => {
@@ -241,12 +268,10 @@
             });
         }
 
-        // When parent is clicked, put it in search bar and reveal its sub-categories
         function selectParentForSearch(parentName) {
             let searchInput = document.getElementById('uploadCatInput');
             searchInput.value = parentName;
             
-            // Hide all sub categories first, then show only matching parent's sub categories
             let subItems = document.querySelectorAll('.sub-cat-item');
             subItems.forEach(item => {
                 if(item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) {
@@ -311,7 +336,6 @@
             }
         });
 
-        // Tags Logic
         const tagInput = document.getElementById('tagInput');
         const tagContainer = document.getElementById('tagContainer');
         const hiddenTags = document.getElementById('hiddenTags');

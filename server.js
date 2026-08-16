@@ -57,7 +57,14 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
-// Helper function to inject Cloudinary watermark for Previews (Google / Direct Save protection)
+// 📥 New Download Log Schema for Daily/Weekly/Monthly tracking
+const downloadLogSchema = new mongoose.Schema({
+    pngId: { type: mongoose.Schema.Types.ObjectId, ref: 'Png' },
+    timestamp: { type: Date, default: Date.now }
+});
+const DownloadLog = mongoose.model('DownloadLog', downloadLogSchema);
+
+// Helper function to inject Cloudinary watermark for Previews (Google / Direct Save protection)[cite: 13]
 function getWatermarkedUrl(originalUrl) {
     if (!originalUrl || !originalUrl.includes('cloudinary.com')) return originalUrl;
     let parts = originalUrl.split('/upload/');
@@ -66,7 +73,6 @@ function getWatermarkedUrl(originalUrl) {
     return parts[0] + '/upload/' + transformation + parts[1];
 }
 
-// Make watermarked URL helper available globally in EJS templates
 app.use((req, res, next) => {
     res.locals.getWatermarkedUrl = getWatermarkedUrl;
     next();
@@ -164,20 +170,18 @@ app.get('/api/search-suggestions', async (req, res) => {
     } catch (err) { res.json([]); }
 });
 
-// Detail Page with 40 Recommendations limit
 app.get('/png/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
         if (!png) return res.status(404).send("PNG not found");
 
         const primaryCat = png.category.split(',')[0].trim();
-        // Recommendations limit increased from 4 to 40 images
         const recommendations = await Png.find({ category: { $regex: primaryCat, $options: 'i' }, _id: { $ne: png._id } }).limit(40);
         res.render('detail', { png, recommendations });
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Force Clean Original Download Route (No Watermark on official download)
+// Force Clean Original Download Route & Log Daily/Weekly/Monthly Download
 app.get('/download/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -185,6 +189,9 @@ app.get('/download/:id', async (req, res) => {
         
         png.downloads += 1;
         await png.save();
+
+        // Log download event for daily/weekly/monthly analytics
+        await DownloadLog.create({ pngId: png._id });
 
         const imageResponse = await fetch(png.imageUrl);
         const arrayBuffer = await imageResponse.arrayBuffer();
@@ -234,6 +241,11 @@ app.get('/admin', requireAdmin, async (req, res) => {
         const weeklyVisits = await Visitor.countDocuments({ timestamp: { $gte: startOfWeek } });
         const monthlyVisits = await Visitor.countDocuments({ timestamp: { $gte: startOfMonth } });
 
+        // 📥 Calculate Daily, Weekly, and Monthly Downloads Analytics[cite: 13]
+        const dailyDownloads = await DownloadLog.countDocuments({ timestamp: { $gte: startOfDay } });
+        const weeklyDownloads = await DownloadLog.countDocuments({ timestamp: { $gte: startOfWeek } });
+        const monthlyDownloads = await DownloadLog.countDocuments({ timestamp: { $gte: startOfMonth } });
+
         const searchAdmin = req.query.search || '';
         const selectedCategory = req.query.category || '';
         
@@ -276,6 +288,7 @@ app.get('/admin', requireAdmin, async (req, res) => {
         res.render('admin', { 
             pngs, categories, totalPngs, sumDownloads, 
             dailyVisits, weeklyVisits, monthlyVisits, 
+            dailyDownloads, weeklyDownloads, monthlyDownloads, // Passed download metrics to view[cite: 13]
             searchAdmin, selectedCategory, currentPage: page, totalPages 
         });
     } catch (err) { res.status(500).send("Server Error"); }
