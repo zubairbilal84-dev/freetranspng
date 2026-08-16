@@ -408,6 +408,7 @@ app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, r
 // Bulk Upload Route
 // Dynamic Multi-Row Bulk Upload Route in server.js
 // Bulk Upload Route handling multiple titles, common category, common tags, and multiple images
+// Common Batch Bulk Upload Route in server.js
 app.post('/admin/bulk-upload', requireAdmin, upload.array('pngImages', 50), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
@@ -416,16 +417,16 @@ app.post('/admin/bulk-upload', requireAdmin, upload.array('pngImages', 50), asyn
 
         const { commonCategory, commonTags, bulkTitles } = req.body;
         
-        // Split titles by newline or comma so each image gets its corresponding title
+        // Split titles by newline, comma, or period based on user preference
         let titlesArray = [];
         if (bulkTitles) {
-            titlesArray = bulkTitles.split(/\r?\n|,/).map(t => t.trim()).filter(Boolean);
+            titlesArray = bulkTitles.split(/\r?\n|,|\./).map(t => t.trim()).filter(Boolean);
         }
 
         for (let i = 0; i < req.files.length; i++) {
             let file = req.files[i];
             
-            // Pick title from the array, or fallback to file name if titles are less than files
+            // Assign title from the list sequentially, or fallback to file name if list ends
             let title = titlesArray[i] || file.originalname.substring(0, file.originalname.lastIndexOf('.')) || file.originalname;
             let category = commonCategory || 'General';
             let tags = commonTags || '';
@@ -452,7 +453,7 @@ app.post('/admin/bulk-upload', requireAdmin, upload.array('pngImages', 50), asyn
         res.redirect('/admin');
     } catch (err) { 
         console.error(err);
-        res.status(500).send("Error uploading bulk files"); 
+        res.status(500).send("Error uploading batch bulk files"); 
     }
 });
 
