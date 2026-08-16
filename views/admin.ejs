@@ -168,10 +168,10 @@
                     </form>
                 </div>
 
-                <!-- ⚡ Dynamic Multi-Row Bulk Upload Builder -->
+                <!-- ⚡ Dynamic Multi-Row Bulk Upload Builder with Advanced Category & Tag Systems -->
                 <div class="bg-white p-6 rounded-xl shadow h-fit border-2 border-purple-200">
                     <h2 class="text-lg font-bold text-gray-800 mb-2">⚡ Multi-PNG Builder (Custom Details per Image)</h2>
-                    <p class="text-xs text-gray-500 mb-4">Har row me apna Title, Category dropdown search, aur Comma/Enter Tag system milega.</p>
+                    <p class="text-xs text-gray-500 mb-4">Har row me wahi same Parent/Sub Category search system aur Enter/Comma Tag system milega.</p>
                     
                     <form action="/admin/bulk-upload" method="POST" enctype="multipart/form-data" class="space-y-4">
                         <div id="dynamicRowsContainer" class="space-y-4">
@@ -264,7 +264,7 @@
     </main>
 
     <script>
-        // --- Single Upload Category Logic ---
+        // --- Single Upload Category & Recent System Logic ---
         let selectedCategoriesArray = [];
         let recentCategories = JSON.parse(localStorage.getItem('recentCats') || '[]');
 
@@ -402,10 +402,8 @@
             renderTags();
         }
 
-        // --- ⚡ Dynamic Multi-Row Builder Logic with Advanced Category & Tag Systems ---
+        // --- ⚡ Dynamic Multi-Row Builder Logic with Advanced Parent/Sub Categories & Tags ---
         let rowIndex = 0;
-        
-        // Pass categories data to JavaScript safely
         const allCategoriesList = JSON.parse('<%- JSON.stringify(categories) %>');
 
         function addDynamicRow() {
@@ -426,28 +424,28 @@
                     <input type="text" name="titles" required placeholder="PNG Title" class="w-full p-2 border rounded text-xs bg-white outline-none">
                 </div>
                 
-                <!-- Category Selector for Dynamic Row -->
+                <!-- Category Selector for Dynamic Row (Parent/Sub System) -->
                 <div class="relative">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Categories (Multiple)</label>
-                    <input type="text" id="catInput_${rowId}" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2 border rounded text-xs bg-white outline-none" oninput="filterRowCategories(${rowId})" onclick="showRowDropdown(${rowId})">
-                    <input type="hidden" name="categories" id="catHidden_${rowId}" required>
+                    <input type="text" id="rowCatInput_${rowId}" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2 border rounded text-xs bg-white outline-none bg-white" oninput="filterRowCategories(${rowId})" onclick="showRowDropdown(${rowId})">
+                    <input type="hidden" name="categories" id="rowCatHidden_${rowId}" required>
                     
-                    <div id="selectedCatContainer_${rowId}" class="flex flex-wrap gap-1 mt-1.5"></div>
+                    <div id="rowSelectedCatContainer_${rowId}" class="flex flex-wrap gap-1 mt-1.5"></div>
 
-                    <div id="catDropdown_${rowId}" class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto p-1 text-xs">
-                        <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Categories</div>
-                        <div id="catListContent_${rowId}">
-                            ${generateCategoriesHtml(rowId)}
+                    <div id="rowCatDropdown_${rowId}" class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto p-1 text-xs">
+                        <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Parent Categories (Click to filter sub-cats)</div>
+                        <div id="rowCatList_${rowId}">
+                            ${generateRowCategoriesHtml(rowId)}
                         </div>
                     </div>
                 </div>
 
-                <!-- Tags System for Dynamic Row -->
+                <!-- Tags System for Dynamic Row (Enter/Comma Paste) -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Tags (Comma separated, press Enter)</label>
-                    <input type="text" id="tagInput_${rowId}" placeholder="Type or paste tags with commas" class="w-full p-2 border rounded text-xs bg-white outline-none mb-1" onkeydown="handleRowTagKey(event, ${rowId})" onpaste="handleRowTagPaste(event, ${rowId})">
-                    <div id="tagContainer_${rowId}" class="flex flex-wrap gap-1 mb-1"></div>
-                    <input type="hidden" name="tags" id="hiddenTags_${rowId}" required>
+                    <input type="text" id="rowTagInput_${rowId}" placeholder="Type or paste tags with commas" class="w-full p-2 border rounded text-xs bg-white outline-none mb-1" onkeydown="handleRowTagKey(event, ${rowId})" onpaste="handleRowTagPaste(event, ${rowId})">
+                    <div id="rowTagContainer_${rowId}" class="flex flex-wrap gap-1 mb-1"></div>
+                    <input type="hidden" name="tags" id="rowHiddenTags_${rowId}" required>
                 </div>
 
                 <div>
@@ -457,30 +455,70 @@
             `;
             container.appendChild(rowDiv);
             
-            // Initialize row arrays storage on window object
             window[`rowCats_${rowId}`] = [];
             window[`rowTags_${rowId}`] = [];
         }
 
-        function generateCategoriesHtml(rowId) {
-            let html = '';
+        function generateRowCategoriesHtml(rowId) {
+            let parentMap = {};
+            let standAlones = [];
             allCategoriesList.forEach(cat => {
-                html += `<div onclick="toggleRowCategory(${rowId}, '${cat.name.replace(/'/g, "\\'")}')" class="p-1.5 hover:bg-blue-50 cursor-pointer text-gray-700 rounded cat-option-${rowId}">${cat.name} ${cat.parentCategory ? '('+cat.parentCategory+')':''}</div>`;
+                if(cat.parentCategory) {
+                    if(!parentMap[cat.parentCategory]) parentMap[cat.parentCategory] = [];
+                    parentMap[cat.parentCategory].push(cat.name);
+                } else {
+                    standAlones.push(cat.name);
+                }
             });
+
+            let html = '';
+            Object.keys(parentMap).forEach(parent => {
+                html += `<div onclick="selectRowParentForSearch(${rowId}, '${parent.replace(/'/g, "\\'")}')" class="p-1.5 hover:bg-indigo-100 cursor-pointer font-bold text-indigo-900 rounded row-parent-${rowId} flex justify-between items-center">📁 ${parent} <span class="text-[9px] text-gray-500">View sub-cats ›</span></div>`;
+                parentMap[parent].forEach(sub => {
+                    html += `<div onclick="toggleRowCategory(${rowId}, '${sub.replace(/'/g, "\\'")}')" data-parent="${parent}" class="p-1 pl-5 hover:bg-blue-50 cursor-pointer text-gray-700 rounded row-subcat-${rowId} hidden">↳ ${sub}</div>`;
+                });
+            });
+
+            if(standAlones.length > 0) {
+                html += `<div class="text-[9px] font-bold text-gray-400 px-2 uppercase mt-1 bg-gray-50 py-0.5">Other Categories</div>`;
+                standAlones.forEach(cat => {
+                    html += `<div onclick="toggleRowCategory(${rowId}, '${cat.replace(/'/g, "\\'")}')" class="p-1.5 hover:bg-blue-50 cursor-pointer text-gray-700 rounded row-cat-${rowId}">${cat}</div>`;
+                });
+            }
             return html;
         }
 
         function showRowDropdown(rowId) {
-            document.getElementById(`catDropdown_${rowId}`).classList.remove('hidden');
+            document.getElementById(`rowCatDropdown_${rowId}`).classList.remove('hidden');
+        }
+
+        function selectRowParentForSearch(rowId, parentName) {
+            let searchInput = document.getElementById(`rowCatInput_${rowId}`);
+            searchInput.value = parentName;
+            
+            let subItems = document.querySelectorAll(`.row-subcat-${rowId}`);
+            subItems.forEach(item => {
+                if(item.getAttribute('data-parent').toLowerCase() === parentName.toLowerCase()) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            document.getElementById(`rowCatDropdown_${rowId}`).classList.remove('hidden');
         }
 
         function filterRowCategories(rowId) {
-            let input = document.getElementById(`catInput_${rowId}`).value.toLowerCase();
-            let options = document.querySelectorAll(`.cat-option-${rowId}`);
-            document.getElementById(`catDropdown_${rowId}`).classList.remove('hidden');
+            let input = document.getElementById(`rowCatInput_${rowId}`).value.toLowerCase();
+            document.getElementById(`rowCatDropdown_${rowId}`).classList.remove('hidden');
             
-            options.forEach(opt => {
-                opt.style.display = opt.textContent.toLowerCase().includes(input) ? "block" : "none";
+            document.querySelectorAll(`.row-parent-${rowId}`).forEach(i => {
+                i.style.display = i.textContent.toLowerCase().includes(input) ? "flex" : "none";
+            });
+            document.querySelectorAll(`.row-subcat-${rowId}`).forEach(i => {
+                i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none";
+            });
+            document.querySelectorAll(`.row-cat-${rowId}`).forEach(i => {
+                i.style.display = i.textContent.toLowerCase().includes(input) ? "block" : "none";
             });
         }
 
@@ -492,11 +530,11 @@
                 window[`rowCats_${rowId}`] = arr.filter(c => c !== name);
             }
             renderRowCategories(rowId);
-            document.getElementById(`catInput_${rowId}`).value = '';
+            document.getElementById(`rowCatInput_${rowId}`).value = '';
         }
 
         function renderRowCategories(rowId) {
-            let container = document.getElementById(`selectedCatContainer_${rowId}`);
+            let container = document.getElementById(`rowSelectedCatContainer_${rowId}`);
             let arr = window[`rowCats_${rowId}`];
             container.innerHTML = '';
             arr.forEach((cat, idx) => {
@@ -505,7 +543,7 @@
                 span.innerHTML = `${cat} <button type="button" onclick="removeRowCategory(${rowId}, ${idx})" class="text-red-500 font-bold ml-1">×</button>`;
                 container.appendChild(span);
             });
-            document.getElementById(`catHidden_${rowId}`).value = arr.join(', ');
+            document.getElementById(`rowCatHidden_${rowId}`).value = arr.join(', ');
         }
 
         function removeRowCategory(rowId, idx) {
@@ -517,7 +555,7 @@
         function handleRowTagKey(e, rowId) {
             if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault();
-                let input = document.getElementById(`tagInput_${rowId}`);
+                let input = document.getElementById(`rowTagInput_${rowId}`);
                 processRowTags(rowId, input.value);
                 input.value = '';
             }
@@ -527,7 +565,7 @@
             e.preventDefault();
             let pasteData = (e.clipboardData || window.clipboardData).getData('text');
             processRowTags(rowId, pasteData);
-            document.getElementById(`tagInput_${rowId}`).value = '';
+            document.getElementById(`rowTagInput_${rowId}`).value = '';
         }
 
         function processRowTags(rowId, str) {
@@ -542,7 +580,7 @@
         }
 
         function renderRowTags(rowId) {
-            let container = document.getElementById(`tagContainer_${rowId}`);
+            let container = document.getElementById(`rowTagContainer_${rowId}`);
             let arr = window[`rowTags_${rowId}`];
             container.innerHTML = '';
             arr.forEach((tag, idx) => {
@@ -551,7 +589,7 @@
                 span.innerHTML = `${tag} <button type="button" onclick="removeRowTag(${rowId}, ${idx})" class="text-red-500 font-bold ml-1">×</button>`;
                 container.appendChild(span);
             });
-            document.getElementById(`hiddenTags_${rowId}`).value = arr.join(', ');
+            document.getElementById(`rowHiddenTags_${rowId}`).value = arr.join(', ');
         }
 
         function removeRowTag(rowId, idx) {
@@ -561,9 +599,9 @@
 
         // Close dropdowns on outside click
         window.addEventListener('click', function(e) {
-            document.querySelectorAll("[id^='catDropdown_']").forEach(drop => {
+            document.querySelectorAll("[id^='rowCatDropdown_']").forEach(drop => {
                 let rowId = drop.id.split('_')[1];
-                let input = document.getElementById(`catInput_${rowId}`);
+                let input = document.getElementById(`rowCatInput_${rowId}`);
                 if (input && !input.contains(e.target) && !drop.contains(e.target)) {
                     drop.classList.add('hidden');
                 }
