@@ -406,40 +406,54 @@ app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, r
 });
 
 // Bulk Upload Route
-app.post('/admin/bulk-upload', requireAdmin, upload.array('pngImages', 50), async (req, res) => {
+// Dynamic Multi-Row Bulk Upload Route in server.js
+app.post('/admin/bulk-upload', requireAdmin, upload.any(), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).send("No files uploaded!");
         }
 
-        const { category, tags } = req.body;
+        // Handle both single/array cases for fields sent dynamically
+        let titles = req.body.titles || [];
+        let categories = req.body.categories || [];
+        let tags = req.body.tags || [];
 
+        if (!Array.isArray(titles)) titles = [titles];
+        if (!Array.isArray(categories)) categories = [categories];
+        if (!Array.isArray(tags)) tags = [tags];
+
+        // Loop through uploaded files and map them with their respective fields based on fieldname index (e.g. pngImages0, pngImages1)
         for (let file of req.files) {
-            await new Promise((resolve, reject) => {
-                let uploadStream = cloudinary.uploader.upload_stream(
-                    { folder: "freetranspng_uploads" },
-                    async (error, result) => {
-                        if (error) return reject(error);
-                        
-                        let originalTitle = file.originalname.substring(0, file.originalname.lastIndexOf('.')) || file.originalname;
-                        
-                        await Png.create({ 
-                            title: originalTitle, 
-                            category: category || 'General', 
-                            tags: tags || '', 
-                            imageUrl: result.secure_url 
-                        });
-                        resolve();
-                    }
-                );
-                uploadStream.end(file.buffer);
-            });
+            if (file.fieldname.startsWith('pngImages')) {
+                let index = file.fieldname.replace('pngImages', '');
+                let title = titles[index] || file.originalname.substring(0, file.originalname.lastIndexOf('.')) || file.originalname;
+                let category = categories[index] || 'General';
+                let tag = tags[index] || '';
+
+                await new Promise((resolve, reject) => {
+                    let uploadStream = cloudinary.uploader.upload_stream(
+                        { folder: "freetranspng_uploads" },
+                        async (error, result) => {
+                            if (error) return reject(error);
+                            
+                            await Png.create({ 
+                                title: title, 
+                                category: category, 
+                                tags: tag, 
+                                imageUrl: result.secure_url 
+                            });
+                            resolve();
+                        }
+                    );
+                    uploadStream.end(file.buffer);
+                });
+            }
         }
 
         res.redirect('/admin');
     } catch (err) { 
         console.error(err);
-        res.status(500).send("Error uploading bulk files"); 
+        res.status(500).send("Error uploading dynamic bulk files"); 
     }
 });
 
