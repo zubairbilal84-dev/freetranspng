@@ -94,78 +94,100 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- Left Column: Upload PNG Form -->
-            <div class="bg-white p-6 rounded-xl shadow h-fit">
-                <h2 class="text-lg font-bold text-gray-800 mb-4">Upload New PNG</h2>
-                <form action="/admin/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">PNG Title</label>
-                        <input type="text" name="title" required placeholder="e.g. Diya PNG" class="w-full p-2.5 border rounded-lg text-sm outline-none">
-                    </div>
-                    
-                    <!-- Interactive Parent & Sub-Category Selection -->
-                    <div class="relative">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Categories (Multiple)</label>
-                        <input type="text" id="uploadCatInput" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterUploadCategories()" onclick="showUploadDropdown()">
-                        <input type="hidden" name="category" id="uploadCatHidden" required>
+            <!-- Left Column: Upload Forms (Single & Bulk) -->
+            <div class="space-y-6">
+                <!-- Single Upload PNG Form -->
+                <div class="bg-white p-6 rounded-xl shadow h-fit">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Upload New PNG</h2>
+                    <form action="/admin/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">PNG Title</label>
+                            <input type="text" name="title" required placeholder="e.g. Diya PNG" class="w-full p-2.5 border rounded-lg text-sm outline-none">
+                        </div>
                         
-                        <div id="selectedCatContainer" class="flex flex-wrap gap-1 mt-2"></div>
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Categories (Multiple)</label>
+                            <input type="text" id="uploadCatInput" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2.5 border rounded-lg text-sm outline-none bg-white" oninput="filterUploadCategories()" onclick="showUploadDropdown()">
+                            <input type="hidden" name="category" id="uploadCatHidden" required>
+                            
+                            <div id="selectedCatContainer" class="flex flex-wrap gap-1 mt-2"></div>
 
-                        <div id="uploadCatDropdown" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto p-1">
-                            <div id="recentCategoriesSection" class="border-b pb-1 mb-1">
-                                <div class="text-[10px] font-bold text-gray-400 px-2 uppercase">Recent Used:</div>
-                                <div id="recentCatList" class="flex flex-wrap gap-1 p-1"></div>
-                            </div>
-                            <div id="allCatList" class="space-y-1">
-                                <% 
-                                   let parentMap = {};
-                                   let standAlones = [];
-                                   categories.forEach(cat => {
-                                       if(cat.parentCategory) {
-                                           if(!parentMap[cat.parentCategory]) parentMap[cat.parentCategory] = [];
-                                           parentMap[cat.parentCategory].push(cat.name);
-                                       } else {
-                                           standAlones.push(cat.name);
-                                       }
-                                   });
-                                %>
-                                
-                                <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Parent Categories (Click to filter sub-cats)</div>
-                                <% Object.keys(parentMap).forEach(parent => { %>
-                                    <div onclick="selectParentForSearch('<%= parent %>')" class="p-2 hover:bg-indigo-100 cursor-pointer text-xs font-bold text-indigo-900 rounded parent-item flex justify-between items-center">
-                                        📁 <%= parent %> <span class="text-[10px] text-gray-500 font-normal">Click to view sub-cats ›</span>
-                                    </div>
-                                    <% parentMap[parent].forEach(sub => { %>
-                                        <div onclick="toggleUploadCategory('<%= sub %>')" data-parent="<%= parent %>" class="p-1.5 pl-6 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 sub-cat-item rounded hidden">
-                                            ↳ <%= sub %>
+                            <div id="uploadCatDropdown" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto p-1">
+                                <div id="recentCategoriesSection" class="border-b pb-1 mb-1">
+                                    <div class="text-[10px] font-bold text-gray-400 px-2 uppercase">Recent Used:</div>
+                                    <div id="recentCatList" class="flex flex-wrap gap-1 p-1"></div>
+                                </div>
+                                <div id="allCatList" class="space-y-1">
+                                    <% 
+                                       let parentMap = {};
+                                       let standAlones = [];
+                                       categories.forEach(cat => {
+                                           if(cat.parentCategory) {
+                                               if(!parentMap[cat.parentCategory]) parentMap[cat.parentCategory] = [];
+                                               parentMap[cat.parentCategory].push(cat.name);
+                                           } else {
+                                               standAlones.push(cat.name);
+                                           }
+                                       });
+                                    %>
+                                    
+                                    <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Parent Categories</div>
+                                    <% Object.keys(parentMap).forEach(parent => { %>
+                                        <div onclick="selectParentForSearch('<%= parent %>')" class="p-2 hover:bg-indigo-100 cursor-pointer text-xs font-bold text-indigo-900 rounded parent-item flex justify-between items-center">
+                                            📁 <%= parent %> <span class="text-[10px] text-gray-500 font-normal">View sub-cats ›</span>
                                         </div>
+                                        <% parentMap[parent].forEach(sub => { %>
+                                            <div onclick="toggleUploadCategory('<%= sub %>')" data-parent="<%= parent %>" class="p-1.5 pl-6 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 sub-cat-item rounded hidden">
+                                                ↳ <%= sub %>
+                                            </div>
+                                        <% }) %>
                                     <% }) %>
-                                <% }) %>
 
-                                <% if(standAlones.length > 0) { %>
-                                    <div class="text-[10px] font-bold text-gray-400 px-2 uppercase mt-2 bg-gray-50 py-0.5">Other Categories</div>
-                                    <% standAlones.forEach(cat => { %>
-                                        <div onclick="toggleUploadCategory('<%= cat %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 category-item rounded"><%= cat %></div>
-                                    <% }) %>
-                                <% } %>
+                                    <% if(standAlones.length > 0) { %>
+                                        <div class="text-[10px] font-bold text-gray-400 px-2 uppercase mt-2 bg-gray-50 py-0.5">Other Categories</div>
+                                        <% standAlones.forEach(cat => { %>
+                                            <div onclick="toggleUploadCategory('<%= cat %>')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 category-item rounded"><%= cat %></div>
+                                        <% }) %>
+                                    <% } %>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Comma Separated Smart Tags -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tags (Paste with commas, press Enter)</label>
-                        <input type="text" id="tagInput" placeholder="Type or paste tags with commas" class="w-full p-2.5 border rounded-lg text-sm outline-none mb-2">
-                        <div id="tagContainer" class="flex flex-wrap gap-1 mb-1"></div>
-                        <input type="hidden" name="tags" id="hiddenTags" required>
-                    </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tags (Paste with commas, press Enter)</label>
+                            <input type="text" id="tagInput" placeholder="Type or paste tags with commas" class="w-full p-2.5 border rounded-lg text-sm outline-none mb-2">
+                            <div id="tagContainer" class="flex flex-wrap gap-1 mb-1"></div>
+                            <input type="hidden" name="tags" id="hiddenTags" required>
+                        </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Select PNG File</label>
-                        <input type="file" name="pngImage" accept="image/png" required class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
-                    </div>
-                    <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-700 transition text-sm">Upload PNG</button>
-                </form>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select PNG File</label>
+                            <input type="file" name="pngImage" accept="image/png" required class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-700 transition text-sm">Upload PNG</button>
+                    </form>
+                </div>
+
+                <!-- Bulk Upload Form -->
+                <div class="bg-white p-6 rounded-xl shadow h-fit">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">⚡ Bulk Upload PNGs</h2>
+                    <form action="/admin/bulk-upload" method="POST" enctype="multipart/form-data" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category for All</label>
+                            <input type="text" name="category" required placeholder="e.g. Freedom Fighters" class="w-full p-2.5 border rounded-lg text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Common Tags</label>
+                            <input type="text" name="tags" placeholder="tag1, tag2, tag3" class="w-full p-2.5 border rounded-lg text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Multiple PNG Files</label>
+                            <input type="file" name="pngImages" accept="image/png" multiple required class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
+                            <p class="text-[10px] text-gray-400 mt-1">File name will be used as title.</p>
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-lg font-bold hover:bg-purple-700 transition text-sm">Upload All in Bulk</button>
+                    </form>
+                </div>
             </div>
 
             <!-- Right Column: Manage Uploaded PNGs with Pagination (20 per page) -->

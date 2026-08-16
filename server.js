@@ -57,14 +57,12 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
 
-// 📥 New Download Log Schema for Daily/Weekly/Monthly tracking
 const downloadLogSchema = new mongoose.Schema({
     pngId: { type: mongoose.Schema.Types.ObjectId, ref: 'Png' },
     timestamp: { type: Date, default: Date.now }
 });
 const DownloadLog = mongoose.model('DownloadLog', downloadLogSchema);
 
-// Helper function to inject Cloudinary watermark for Previews (Google / Direct Save protection)[cite: 13]
 function getWatermarkedUrl(originalUrl) {
     if (!originalUrl || !originalUrl.includes('cloudinary.com')) return originalUrl;
     let parts = originalUrl.split('/upload/');
@@ -181,7 +179,6 @@ app.get('/png/:id', async (req, res) => {
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
-// Force Clean Original Download Route & Log Daily/Weekly/Monthly Download
 app.get('/download/:id', async (req, res) => {
     try {
         const png = await Png.findById(req.params.id);
@@ -190,7 +187,6 @@ app.get('/download/:id', async (req, res) => {
         png.downloads += 1;
         await png.save();
 
-        // Log download event for daily/weekly/monthly analytics
         await DownloadLog.create({ pngId: png._id });
 
         const imageResponse = await fetch(png.imageUrl);
@@ -241,7 +237,6 @@ app.get('/admin', requireAdmin, async (req, res) => {
         const weeklyVisits = await Visitor.countDocuments({ timestamp: { $gte: startOfWeek } });
         const monthlyVisits = await Visitor.countDocuments({ timestamp: { $gte: startOfMonth } });
 
-        // 📥 Calculate Daily, Weekly, and Monthly Downloads Analytics[cite: 13]
         const dailyDownloads = await DownloadLog.countDocuments({ timestamp: { $gte: startOfDay } });
         const weeklyDownloads = await DownloadLog.countDocuments({ timestamp: { $gte: startOfWeek } });
         const monthlyDownloads = await DownloadLog.countDocuments({ timestamp: { $gte: startOfMonth } });
@@ -288,7 +283,7 @@ app.get('/admin', requireAdmin, async (req, res) => {
         res.render('admin', { 
             pngs, categories, totalPngs, sumDownloads, 
             dailyVisits, weeklyVisits, monthlyVisits, 
-            dailyDownloads, weeklyDownloads, monthlyDownloads, // Passed download metrics to view[cite: 13]
+            dailyDownloads, weeklyDownloads, monthlyDownloads, 
             searchAdmin, selectedCategory, currentPage: page, totalPages 
         });
     } catch (err) { res.status(500).send("Server Error"); }
@@ -407,6 +402,44 @@ app.post('/admin/upload', requireAdmin, upload.single('pngImage'), async (req, r
     } catch (err) { 
         console.error(err);
         res.status(500).send("Error uploading file"); 
+    }
+});
+
+// Bulk Upload Route
+app.post('/admin/bulk-upload', requireAdmin, upload.array('pngImages', 50), async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).send("No files uploaded!");
+        }
+
+        const { category, tags } = req.body;
+
+        for (let file of req.files) {
+            await new Promise((resolve, reject) => {
+                let uploadStream = cloudinary.uploader.upload_stream(
+                    { folder: "freetranspng_uploads" },
+                    async (error, result) => {
+                        if (error) return reject(error);
+                        
+                        let originalTitle = file.originalname.substring(0, file.originalname.lastIndexOf('.')) || file.originalname;
+                        
+                        await Png.create({ 
+                            title: originalTitle, 
+                            category: category || 'General', 
+                            tags: tags || '', 
+                            imageUrl: result.secure_url 
+                        });
+                        resolve();
+                    }
+                );
+                uploadStream.end(file.buffer);
+            });
+        }
+
+        res.redirect('/admin');
+    } catch (err) { 
+        console.error(err);
+        res.status(500).send("Error uploading bulk files"); 
     }
 });
 
