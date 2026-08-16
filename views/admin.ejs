@@ -171,14 +171,14 @@
                 <!-- ⚡ Dynamic Multi-Row Bulk Upload Builder -->
                 <div class="bg-white p-6 rounded-xl shadow h-fit border-2 border-purple-200">
                     <h2 class="text-lg font-bold text-gray-800 mb-2">⚡ Multi-PNG Builder (Custom Details per Image)</h2>
-                    <p class="text-xs text-gray-500 mb-4">Yahan aap alag-alag title, category, aur tags ke sath multiple PNGs add karke ek sath upload kar sakte hain.</p>
+                    <p class="text-xs text-gray-500 mb-4">Har row me apna Title, Category dropdown search, aur Comma/Enter Tag system milega.</p>
                     
                     <form action="/admin/bulk-upload" method="POST" enctype="multipart/form-data" class="space-y-4">
                         <div id="dynamicRowsContainer" class="space-y-4">
-                            <!-- Rows will be added dynamically via JS -->
+                            <!-- Rows inserted dynamically -->
                         </div>
 
-                        <button type="button" onclick="addDynamicRow()" class="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-2 rounded-lg font-bold hover:bg-indigo-100 transition text-xs">
+                        <button type="button" onclick="addDynamicRow()" class="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-2.5 rounded-lg font-bold hover:bg-indigo-100 transition text-xs">
                             + Add Another PNG Section
                         </button>
 
@@ -402,39 +402,173 @@
             renderTags();
         }
 
-        // --- ⚡ Dynamic Multi-Row Builder Logic ---
+        // --- ⚡ Dynamic Multi-Row Builder Logic with Advanced Category & Tag Systems ---
         let rowIndex = 0;
         
+        // Pass categories data to JavaScript safely
+        const allCategoriesList = JSON.parse('<%- JSON.stringify(categories) %>');
+
         function addDynamicRow() {
             let container = document.getElementById('dynamicRowsContainer');
             let rowId = rowIndex++;
             
             let rowDiv = document.createElement('div');
-            rowDiv.className = "p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3 relative";
+            rowDiv.className = "p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3 relative row-item";
+            rowDiv.setAttribute('data-row-id', rowId);
+            
             rowDiv.innerHTML = `
                 <div class="flex justify-between items-center">
                     <span class="text-xs font-bold text-purple-700">PNG Entry #${rowId + 1}</span>
-                    <button type="button" onclick="this.closest('div.p-4').remove()" class="text-red-500 text-xs font-bold hover:underline">Remove ✕</button>
+                    <button type="button" onclick="this.closest('div.row-item').remove()" class="text-red-500 text-xs font-bold hover:underline">Remove ✕</button>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Title</label>
                     <input type="text" name="titles" required placeholder="PNG Title" class="w-full p-2 border rounded text-xs bg-white outline-none">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Category</label>
-                    <input type="text" name="categories" required placeholder="Category name" class="w-full p-2 border rounded text-xs bg-white outline-none">
+                
+                <!-- Category Selector for Dynamic Row -->
+                <div class="relative">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Categories (Multiple)</label>
+                    <input type="text" id="catInput_${rowId}" placeholder="Type letters or click parent..." autocomplete="off" class="w-full p-2 border rounded text-xs bg-white outline-none" oninput="filterRowCategories(${rowId})" onclick="showRowDropdown(${rowId})">
+                    <input type="hidden" name="categories" id="catHidden_${rowId}" required>
+                    
+                    <div id="selectedCatContainer_${rowId}" class="flex flex-wrap gap-1 mt-1.5"></div>
+
+                    <div id="catDropdown_${rowId}" class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto p-1 text-xs">
+                        <div class="text-[10px] font-bold text-indigo-600 px-2 uppercase bg-indigo-50 py-0.5">Categories</div>
+                        <div id="catListContent_${rowId}">
+                            ${generateCategoriesHtml(rowId)}
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Tags System for Dynamic Row -->
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Tags (Comma separated)</label>
-                    <input type="text" name="tags" required placeholder="tag1, tag2, tag3" class="w-full p-2 border rounded text-xs bg-white outline-none">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tags (Comma separated, press Enter)</label>
+                    <input type="text" id="tagInput_${rowId}" placeholder="Type or paste tags with commas" class="w-full p-2 border rounded text-xs bg-white outline-none mb-1" onkeydown="handleRowTagKey(event, ${rowId})" onpaste="handleRowTagPaste(event, ${rowId})">
+                    <div id="tagContainer_${rowId}" class="flex flex-wrap gap-1 mb-1"></div>
+                    <input type="hidden" name="tags" id="hiddenTags_${rowId}" required>
                 </div>
+
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">PNG File</label>
                     <input type="file" name="pngImages${rowId}" accept="image/png" required class="w-full p-1.5 border rounded bg-white text-xs">
                 </div>
             `;
             container.appendChild(rowDiv);
+            
+            // Initialize row arrays storage on window object
+            window[`rowCats_${rowId}`] = [];
+            window[`rowTags_${rowId}`] = [];
         }
+
+        function generateCategoriesHtml(rowId) {
+            let html = '';
+            allCategoriesList.forEach(cat => {
+                html += `<div onclick="toggleRowCategory(${rowId}, '${cat.name.replace(/'/g, "\\'")}')" class="p-1.5 hover:bg-blue-50 cursor-pointer text-gray-700 rounded cat-option-${rowId}">${cat.name} ${cat.parentCategory ? '('+cat.parentCategory+')':''}</div>`;
+            });
+            return html;
+        }
+
+        function showRowDropdown(rowId) {
+            document.getElementById(`catDropdown_${rowId}`).classList.remove('hidden');
+        }
+
+        function filterRowCategories(rowId) {
+            let input = document.getElementById(`catInput_${rowId}`).value.toLowerCase();
+            let options = document.querySelectorAll(`.cat-option-${rowId}`);
+            document.getElementById(`catDropdown_${rowId}`).classList.remove('hidden');
+            
+            options.forEach(opt => {
+                opt.style.display = opt.textContent.toLowerCase().includes(input) ? "block" : "none";
+            });
+        }
+
+        function toggleRowCategory(rowId, name) {
+            let arr = window[`rowCats_${rowId}`];
+            if (!arr.includes(name)) {
+                arr.push(name);
+            } else {
+                window[`rowCats_${rowId}`] = arr.filter(c => c !== name);
+            }
+            renderRowCategories(rowId);
+            document.getElementById(`catInput_${rowId}`).value = '';
+        }
+
+        function renderRowCategories(rowId) {
+            let container = document.getElementById(`selectedCatContainer_${rowId}`);
+            let arr = window[`rowCats_${rowId}`];
+            container.innerHTML = '';
+            arr.forEach((cat, idx) => {
+                let span = document.createElement('span');
+                span.className = "bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-medium";
+                span.innerHTML = `${cat} <button type="button" onclick="removeRowCategory(${rowId}, ${idx})" class="text-red-500 font-bold ml-1">×</button>`;
+                container.appendChild(span);
+            });
+            document.getElementById(`catHidden_${rowId}`).value = arr.join(', ');
+        }
+
+        function removeRowCategory(rowId, idx) {
+            window[`rowCats_${rowId}`].splice(idx, 1);
+            renderRowCategories(rowId);
+        }
+
+        // Row Tags Logic
+        function handleRowTagKey(e, rowId) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                let input = document.getElementById(`tagInput_${rowId}`);
+                processRowTags(rowId, input.value);
+                input.value = '';
+            }
+        }
+
+        function handleRowTagPaste(e, rowId) {
+            e.preventDefault();
+            let pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            processRowTags(rowId, pasteData);
+            document.getElementById(`tagInput_${rowId}`).value = '';
+        }
+
+        function processRowTags(rowId, str) {
+            let arr = window[`rowTags_${rowId}`];
+            str.split(',').forEach(part => {
+                let val = part.trim().replace(/^#+/, '');
+                if (val && !arr.includes(val)) {
+                    arr.push(val);
+                }
+            });
+            renderRowTags(rowId);
+        }
+
+        function renderRowTags(rowId) {
+            let container = document.getElementById(`tagContainer_${rowId}`);
+            let arr = window[`rowTags_${rowId}`];
+            container.innerHTML = '';
+            arr.forEach((tag, idx) => {
+                let span = document.createElement('span');
+                span.className = "bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-medium";
+                span.innerHTML = `${tag} <button type="button" onclick="removeRowTag(${rowId}, ${idx})" class="text-red-500 font-bold ml-1">×</button>`;
+                container.appendChild(span);
+            });
+            document.getElementById(`hiddenTags_${rowId}`).value = arr.join(', ');
+        }
+
+        function removeRowTag(rowId, idx) {
+            window[`rowTags_${rowId}`].splice(idx, 1);
+            renderRowTags(rowId);
+        }
+
+        // Close dropdowns on outside click
+        window.addEventListener('click', function(e) {
+            document.querySelectorAll("[id^='catDropdown_']").forEach(drop => {
+                let rowId = drop.id.split('_')[1];
+                let input = document.getElementById(`catInput_${rowId}`);
+                if (input && !input.contains(e.target) && !drop.contains(e.target)) {
+                    drop.classList.add('hidden');
+                }
+            });
+        });
 
         // Add default 1 row on load
         window.addEventListener('DOMContentLoaded', () => {
