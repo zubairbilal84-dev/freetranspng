@@ -6,7 +6,7 @@
     <title>Admin Dashboard - FreeTransPNG</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
-<body class="bg-gray-100 font-sans" onpaste="handleGlobalPaste(event)">
+<body class="bg-gray-100 font-sans">
     
     <header class="bg-gray-900 text-white p-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow">
         <h1 class="text-xl font-bold text-center sm:text-left">FreeTransPNG Admin Panel</h1>
@@ -161,8 +161,15 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Select or Paste PNG File</label>
-                            <input type="file" id="singlePngInput" name="pngImage" accept="image/png" required class="w-full p-2 border rounded-lg bg-gray-50 text-sm">
+                            <input type="file" id="singleFileInput" name="pngImage" accept="image/png" required class="w-full p-2 border rounded-lg bg-gray-50 text-sm mb-2">
+                            
+                            <!-- Dedicated Paste Box for Single Upload -->
+                            <div id="singlePasteBox" contenteditable="true" class="w-full border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl p-3 text-center text-xs text-indigo-600 font-medium cursor-pointer focus:outline-none focus:border-indigo-600" onpaste="handleSinglePaste(event)">
+                                📋 Click here & press <kbd class="bg-white px-1 py-0.5 rounded shadow">Ctrl + V</kbd> to Paste PNG
+                            </div>
+                            <div id="singlePreviewContainer" class="flex flex-wrap gap-2 mt-2"></div>
                         </div>
+
                         <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-700 transition text-sm">Upload PNG</button>
                     </form>
                 </div>
@@ -170,7 +177,7 @@
                 <!-- 2. Common Batch Bulk Upload Section -->
                 <div class="bg-white p-6 rounded-xl shadow h-fit border-2 border-purple-300">
                     <h2 class="text-lg font-bold text-gray-800 mb-1">⚡ Common Batch Bulk Upload</h2>
-                    <p class="text-xs text-gray-500 mb-4">Titles ki list paste karein, common category aur tags select karein, aur bohot saari PNGs ek sath select karke upload karein.</p>
+                    <p class="text-xs text-gray-500 mb-4">Titles ki list paste karein, common category aur tags select karein, aur multiple PNGs select ya paste karein.</p>
                     
                     <form action="/admin/bulk-upload" method="POST" enctype="multipart/form-data" class="space-y-4">
                         <div>
@@ -209,7 +216,13 @@
 
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Select Multiple or Paste PNG Files</label>
-                            <input type="file" id="batchPngInput" name="pngImages" accept="image/png" multiple required class="w-full p-2 border rounded-lg bg-gray-50 text-xs">
+                            <input type="file" id="batchFileInput" name="pngImages" accept="image/png" multiple required class="w-full p-2 border rounded-lg bg-gray-50 text-xs mb-2">
+                            
+                            <!-- Dedicated Paste Box for Batch Upload -->
+                            <div id="batchPasteBox" contenteditable="true" class="w-full border-2 border-dashed border-purple-300 bg-purple-50/50 rounded-xl p-3 text-center text-xs text-purple-600 font-medium cursor-pointer focus:outline-none focus:border-purple-600" onpaste="handleBatchPaste(event)">
+                                📋 Click here & press <kbd class="bg-white px-1 py-0.5 rounded shadow">Ctrl + V</kbd> to Paste Multiple PNGs
+                            </div>
+                            <div id="batchPreviewContainer" class="flex flex-wrap gap-2 mt-2"></div>
                         </div>
 
                         <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-lg font-bold hover:bg-purple-700 transition text-sm">
@@ -313,52 +326,93 @@
     </main>
 
     <script>
-        // --- Global Paste Listener for Clipboard Images ---
-        function handleGlobalPaste(e) {
+        // --- 1. Single Upload Paste & Preview Logic ---
+        let singleFilesData = new DataTransfer();
+        function handleSinglePaste(e) {
+            e.preventDefault();
             let items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (let index in items) {
-                let item = items[index];
+            for (let item of items) {
                 if (item.kind === 'file' && item.type.startsWith('image/')) {
-                    let blob = item.getAsFile();
-                    let file = new File([blob], "pasted-image-" + Date.now() + ".png", { type: "image/png" });
-                    
-                    let dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(file);
-
-                    // Check which section is currently focused or default to Single Upload
-                    let activeEl = document.activeElement;
-                    let targetInput = null;
-
-                    if (activeEl && activeEl.closest('.row-item')) {
-                        let rowItem = activeEl.closest('.row-item');
-                        targetInput = rowItem.querySelector("input[type='file']");
-                    } else if (activeEl && activeEl.closest('form')) {
-                        let form = activeEl.closest('form');
-                        targetInput = form.querySelector("input[type='file']");
-                    }
-
-                    // Fallback to Single Upload if no specific form/row focused
-                    if (!targetInput) {
-                        targetInput = document.getElementById('singlePngInput');
-                    }
-
-                    if (targetInput) {
-                        targetInput.files = dataTransfer.files;
-                        // Trigger change/input event visually or alert
-                        let feedback = document.createElement('div');
-                        feedback.className = "text-[10px] text-green-600 font-bold mt-1 pasted-alert";
-                        feedback.innerText = "✓ Image pasted successfully from clipboard!";
-                        
-                        let parentDiv = targetInput.parentElement;
-                        let oldAlert = parentDiv.querySelector('.pasted-alert');
-                        if(oldAlert) oldAlert.remove();
-                        parentDiv.appendChild(feedback);
-                        setTimeout(() => feedback.remove(), 3000);
-                    }
-                    e.preventDefault();
+                    let file = item.getAsFile();
+                    singleFilesData = new DataTransfer(); // Single file only
+                    singleFilesData.items.add(file);
+                    document.getElementById('singleFileInput').files = singleFilesData.files;
+                    renderSinglePreview();
                 }
             }
         }
+        function renderSinglePreview() {
+            let container = document.getElementById('singlePreviewContainer');
+            container.innerHTML = '';
+            let file = document.getElementById('singleFileInput').files[0];
+            if(!file) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                container.innerHTML = `
+                    <div class="relative inline-block bg-gray-100 border p-1 rounded-lg">
+                        <img src="${e.target.result}" class="h-16 w-16 object-contain">
+                        <button type="button" onclick="removeSingleFile()" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-5 w-5 text-xs font-bold flex items-center justify-center shadow hover:bg-red-700">✕</button>
+                    </div>
+                `;
+            }
+            reader.readAsDataURL(file);
+        }
+        function removeSingleFile() {
+            singleFilesData = new DataTransfer();
+            document.getElementById('singleFileInput').files = singleFilesData.files;
+            document.getElementById('singlePreviewContainer').innerHTML = '';
+        }
+        document.getElementById('singleFileInput').addEventListener('change', renderSinglePreview);
+
+        // --- 2. Batch Bulk Upload Paste & Preview Logic ---
+        let batchFilesData = new DataTransfer();
+        function handleBatchPaste(e) {
+            e.preventDefault();
+            let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    let file = item.getAsFile();
+                    batchFilesData.items.add(file);
+                }
+            }
+            document.getElementById('batchFileInput').files = batchFilesData.files;
+            renderBatchPreview();
+        }
+        function renderBatchPreview() {
+            let container = document.getElementById('batchPreviewContainer');
+            container.innerHTML = '';
+            let files = document.getElementById('batchFileInput').files;
+            for(let i=0; i<files.length; i++) {
+                let file = files[i];
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let div = document.createElement('div');
+                    div.className = "relative inline-block bg-gray-100 border p-1 rounded-lg";
+                    div.innerHTML = `
+                        <img src="${e.target.result}" class="h-16 w-16 object-contain">
+                        <button type="button" onclick="removeBatchFile(${i})" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-5 w-5 text-xs font-bold flex items-center justify-center shadow hover:bg-red-700">✕</button>
+                    `;
+                    container.appendChild(div);
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        function removeBatchFile(index) {
+            let dt = new DataTransfer();
+            let files = document.getElementById('batchFileInput').files;
+            for (let i = 0; i < files.length; i++) {
+                if (i !== index) dt.items.add(files[i]);
+            }
+            batchFilesData = dt;
+            document.getElementById('batchFileInput').files = batchFilesData.files;
+            renderBatchPreview();
+        }
+        document.getElementById('batchFileInput').addEventListener('change', function() {
+            batchFilesData = new DataTransfer();
+            for(let f of this.files) batchFilesData.items.add(f);
+            renderBatchPreview();
+        });
+
 
         // --- Single Upload Logic ---
         let selectedCategoriesArray = [];
@@ -446,14 +500,10 @@
             }
         });
         tagInput.addEventListener('paste', function(e) {
-            // Check if pasted content is an image file
             let items = (e.clipboardData || window.clipboardData).items;
             let hasImage = false;
             for(let i=0; i<items.length; i++) {
-                if(items[i].kind === 'file' && items[i].type.startsWith('image/')) {
-                    hasImage = true;
-                    break;
-                }
+                if(items[i].kind === 'file' && items[i].type.startsWith('image/')) { hasImage = true; break; }
             }
             if(!hasImage) {
                 e.preventDefault();
@@ -538,10 +588,7 @@
             let items = (e.clipboardData || window.clipboardData).items;
             let hasImage = false;
             for(let i=0; i<items.length; i++) {
-                if(items[i].kind === 'file' && items[i].type.startsWith('image/')) {
-                    hasImage = true;
-                    break;
-                }
+                if(items[i].kind === 'file' && items[i].type.startsWith('image/')) { hasImage = true; break; }
             }
             if(!hasImage) {
                 e.preventDefault();
@@ -569,7 +616,7 @@
         }
         function removeBatchTag(index) { batchTagsArray.splice(index, 1); renderBatchTags(); }
 
-        // --- Multi-PNG Custom Builder Logic ---
+        // --- 3. Multi-PNG Custom Builder Logic with Paste & Preview ---
         let rowIndex = 0;
         const allCategoriesList = JSON.parse('<%- JSON.stringify(categories) %>');
 
@@ -607,12 +654,63 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Select or Paste PNG File</label>
-                    <input type="file" name="pngImages${rowId}" accept="image/png" required class="w-full p-1 border rounded bg-white text-xs">
+                    <input type="file" id="rowFileInput_${rowId}" name="pngImages${rowId}" accept="image/png" required class="w-full p-1 border rounded bg-white text-xs mb-2">
+                    
+                    <!-- Dedicated Paste Box for Custom Builder Row -->
+                    <div contenteditable="true" class="w-full border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-lg p-2 text-center text-[10px] text-indigo-600 font-medium cursor-pointer focus:outline-none" onpaste="handleRowPaste(event, ${rowId})">
+                        📋 Click & press <kbd class="bg-white px-1 rounded shadow">Ctrl+V</kbd> to Paste PNG
+                    </div>
+                    <div id="rowPreview_${rowId}" class="mt-2"></div>
                 </div>
             `;
             container.appendChild(rowDiv);
             window[`rowCats_${rowId}`] = [];
             window[`rowTags_${rowId}`] = [];
+            window[`rowFileData_${rowId}`] = new DataTransfer();
+
+            let fileInput = document.getElementById(`rowFileInput_${rowId}`);
+            fileInput.addEventListener('change', function() {
+                window[`rowFileData_${rowId}`] = new DataTransfer();
+                for(let f of this.files) window[`rowFileData_${rowId}`].items.add(f);
+                renderRowPreview(rowId);
+            });
+        }
+
+        function handleRowPaste(e, rowId) {
+            e.preventDefault();
+            let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    let file = item.getAsFile();
+                    window[`rowFileData_${rowId}`] = new DataTransfer(); // Single file per row
+                    window[`rowFileData_${rowId}`].items.add(file);
+                    document.getElementById(`rowFileInput_${rowId}`).files = window[`rowFileData_${rowId}`].files;
+                    renderRowPreview(rowId);
+                }
+            }
+        }
+
+        function renderRowPreview(rowId) {
+            let container = document.getElementById(`rowPreview_${rowId}`);
+            container.innerHTML = '';
+            let file = document.getElementById(`rowFileInput_${rowId}`).files[0];
+            if(!file) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                container.innerHTML = `
+                    <div class="relative inline-block bg-gray-100 border p-1 rounded-lg">
+                        <img src="${e.target.result}" class="h-14 w-14 object-contain">
+                        <button type="button" onclick="removeRowFile(${rowId})" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-4 w-4 text-[10px] font-bold flex items-center justify-center shadow">✕</button>
+                    </div>
+                `;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function removeRowFile(rowId) {
+            window[`rowFileData_${rowId}`] = new DataTransfer();
+            document.getElementById(`rowFileInput_${rowId}`).files = window[`rowFileData_${rowId}`].files;
+            document.getElementById(`rowPreview_${rowId}`).innerHTML = '';
         }
 
         function generateRowCategoriesHtml(rowId) {
@@ -688,10 +786,7 @@
             let items = (e.clipboardData || window.clipboardData).items;
             let hasImage = false;
             for(let i=0; i<items.length; i++) {
-                if(items[i].kind === 'file' && items[i].type.startsWith('image/')) {
-                    hasImage = true;
-                    break;
-                }
+                if(items[i].kind === 'file' && items[i].type.startsWith('image/')) { hasImage = true; break; }
             }
             if(!hasImage) {
                 e.preventDefault();
@@ -731,7 +826,7 @@
             document.querySelectorAll("[id^='rowCatDropdown_']").forEach(drop => {
                 let rowId = drop.id.split('_')[1];
                 let input = document.getElementById(`rowCatInput_${rowId}`);
-                if (input && !input.contains(e.target) && !drop.contains(e.target)) drop.classList.add('hidden');
+                if (input && !input.contains(e.target) && -drop.contains(e.target)) drop.classList.add('hidden');
             });
         });
 
