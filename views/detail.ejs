@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= png.title %> - FreeTransPNG</title>
+    <!-- 💡 Google AdSense Verification Script -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7255970085689700" crossorigin="anonymous"></script>
     <link rel="icon" href="/logo.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,6 +20,7 @@
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
+    <!-- Baaki detail page code same rahega -->
 
     <!-- Header -->
     <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md">
@@ -56,6 +59,12 @@
             </div>
         </div>
 
+        <!-- 💡 AD PLACEMENT: DETAIL PAGE BANNER (Main product box aur Recommendations ke beech mein) -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center mt-6">
+            <span class="text-[10px] text-gray-400 uppercase tracking-widest block mb-1">Advertisement</span>
+            <div class="bg-gray-100 p-4 rounded-xl border border-dashed border-gray-300 text-xs text-gray-400">[ Detail Page Banner Ad Code ]</div>
+        </div>
+
         <!-- Recommendations Section (Up to 40 Images) -->
         <% if (recommendations && recommendations.length > 0) { %>
             <div class="mt-12">
@@ -66,7 +75,7 @@
                             <a href="/png/<%= item._id %>" class="checkerboard-bg h-32 flex items-center justify-center relative overflow-hidden block rounded-lg p-2">
                                 <img src="<%= getWatermarkedUrl(item.imageUrl) %>" alt="<%= item.title %>" class="max-h-24 max-w-full object-contain relative z-10 group-hover:scale-110 transition duration-300">
                                 
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-2 text-white z-20">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col justify-end p-2 text-white z-25">
                                     <span class="text-[11px] font-bold truncate"><%= item.title %></span>
                                 </div>
                             </a>
